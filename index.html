@@ -404,6 +404,117 @@
             border-radius: 3px;
             transition: width 0.3s linear;
         }
+
+        /* ===================== DARK TERMINAL THEME ===================== */
+        html, body {
+            background: #0b0e14;
+            color: #d7dde5;
+            font-family: 'Consolas', 'SFMono-Regular', 'Courier New', monospace;
+        }
+        #controls, #zoom-container, #config-container, #auto-refresh-container,
+        #add-symbol-container {
+            color: #d7dde5;
+        }
+        button, select, input[type="text"], input[type="number"], input[type="file"] {
+            background: #1a1f2b;
+            color: #d7dde5;
+            border: 1px solid #2b3242;
+            border-radius: 3px;
+            font-family: inherit;
+        }
+        button {
+            cursor: pointer;
+        }
+        button:hover {
+            background: #262d3d;
+            border-color: #c9975a;
+        }
+        input::placeholder {
+            color: #6b7280;
+        }
+        #destroyChartButton {
+            background: #2a1216;
+            color: #ff6b6b !important;
+            border-color: #5a2020;
+        }
+        .dropdown-content, .symbol-dropdown-content {
+            background-color: #12151d;
+            border: 1px solid #2b3242;
+        }
+        .dropdown-content label, .symbol-dropdown-content label {
+            color: #d7dde5;
+        }
+        .dropdown-content label:hover, .symbol-dropdown-content label:hover {
+            background-color: #1f2533;
+        }
+        #orderbookchart {
+            border: 1px solid #2b3242;
+            background: #0e1119;
+        }
+        #alerts-panel, #comparison-panel, #depth-panel, #slippage-panel,
+        #history-panel, #watchlist-panel, #export-panel, #ladder-panel {
+            background: #11151d;
+            border: 1px solid #232838;
+            box-shadow: none;
+        }
+        #comparison-table th, #comparison-table td,
+        #watchlist-table th, #watchlist-table td {
+            border: 1px solid #232838;
+            color: #d7dde5;
+        }
+        #comparison-table th, #watchlist-table th {
+            background: #171b26;
+            color: #c9975a;
+        }
+        #comparison-table tr.best-bid td:nth-child(2) {
+            background: rgba(62, 207, 142, 0.25);
+            color: #3ecf8e;
+        }
+        #comparison-table tr.best-ask td:nth-child(3) {
+            background: rgba(239, 83, 80, 0.25);
+            color: #ef5350;
+        }
+        #arbitrage-info.positive {
+            color: #3ecf8e;
+        }
+        #agg-imbalance-bar {
+            background: #ef5350;
+        }
+        #agg-imbalance-fill {
+            background: #3ecf8e;
+        }
+        #alert-list li {
+            border-bottom: 1px dashed #232838;
+        }
+        .ladder-header {
+            border-bottom: 1px solid #232838;
+            color: #c9975a;
+        }
+        .ladder-mid {
+            background: #171b26;
+            color: #c9975a;
+        }
+        .ask-row .ladder-price {
+            color: #ef5350;
+        }
+        .bid-row .ladder-price {
+            color: #3ecf8e;
+        }
+        .ask-row .ladder-bar {
+            background: rgba(239, 83, 80, 0.22);
+        }
+        .bid-row .ladder-bar {
+            background: rgba(62, 207, 142, 0.22);
+        }
+        #chart-credit {
+            color: #c9975a;
+        }
+        #total-info {
+            color: #d7dde5;
+        }
+        a {
+            color: #c9975a;
+        }
     </style>
 </head>
 <body>
