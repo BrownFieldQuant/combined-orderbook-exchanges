@@ -1,3 +1,40 @@
+// ---- CORS-resilient fetch ----
+// Tries a direct fetch first. If that fails (network/CORS error),
+// automatically retries through a list of public CORS proxies so the
+// app keeps working without requiring a browser extension.
+const CORS_PROXIES = [
+    (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+    (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    (url) => `https://thingproxy.freeboard.io/fetch/${url}`
+];
+
+async function corsFetch(url, options) {
+    // 1) Try direct request first (works when the exchange allows CORS,
+    //    or when the user is on a backend/proxy-enabled host).
+    try {
+        const response = await fetch(url, options);
+        if (response.ok) return response;
+        // Non-OK response: still usable (some APIs return JSON error bodies),
+        // so return it as-is instead of falling back.
+        return response;
+    } catch (directError) {
+        // 2) Direct fetch blocked (typically a CORS error) — fall back to proxies.
+        for (const buildProxyUrl of CORS_PROXIES) {
+            try {
+                const proxyUrl = buildProxyUrl(url);
+                const response = await fetch(proxyUrl, options);
+                if (response.ok) return response;
+            } catch (proxyError) {
+                // try next proxy
+                continue;
+            }
+        }
+        // 3) All attempts failed — rethrow the original error so the
+        //    calling exchange function's catch block can handle it.
+        throw directError;
+    }
+}
+
 function selectAllExchanges() {
 	var checkboxes = document.querySelectorAll('.exchange');
 	checkboxes.forEach(function(checkbox) {
