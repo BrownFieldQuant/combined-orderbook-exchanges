@@ -96,7 +96,6 @@
             border: 1px solid #ccc;
             padding: 6px;
             margin-top: 6px;
-            max-width: 570px;
         }
         #alert-list {
             list-style: none;
@@ -168,7 +167,50 @@
             border: 1px solid #ccc;
             padding: 6px;
             margin-top: 6px;
-            max-width: 570px;
+        }
+        #main-dashboard {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            width: 100%;
+        }
+        #chart-col {
+            flex: 2 1 600px;
+            min-width: 0;
+        }
+        #chart-col #orderbookchart {
+            width: 100%;
+        }
+        #side-col {
+            flex: 1 1 320px;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        #side-col #alerts-panel,
+        #side-col #slippage-panel,
+        #side-col #export-panel {
+            margin-top: 0;
+        }
+        #dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+            align-items: start;
+        }
+        #dashboard-grid > div {
+            margin-top: 0;
+        }
+        @media (max-width: 900px) {
+            #main-dashboard {
+                flex-direction: column;
+            }
+            #side-col {
+                min-width: 0;
+                width: 100%;
+            }
         }
         #depthchart, #spreadhistorychart {
             width: 100%;
@@ -280,83 +322,91 @@
             <div id="total-info">Asks: 0.00% Bids: 0.00%</div>    
         </div>  
     </div>  
-    <div id="orderbookchart"></div>
+    <div id="main-dashboard">
+        <div id="chart-col">
+            <div id="orderbookchart"></div>
+        </div>
 
-    <div id="alerts-panel">
-        <b>Price Alerts</b>
-        <select id="alert-condition">
-            <option value="above">Best Ask &le;</option>
-            <option value="below">Best Bid &ge;</option>
-            <option value="arbitrage">Arbitrage spread &ge; (%)</option>
-            <option value="lowvolume">Top-N total volume &le;</option>
-        </select>
-        <input type="number" id="alert-price" placeholder="Price / % / Qty" step="any" style="width:120px;">
-        <button id="add-alert-btn">Add Alert</button>
-        <ul id="alert-list"></ul>
-    </div>
+        <div id="side-col">
+            <div id="alerts-panel">
+                <b>Price Alerts</b>
+                <select id="alert-condition">
+                    <option value="above">Best Ask &le;</option>
+                    <option value="below">Best Bid &ge;</option>
+                    <option value="arbitrage">Arbitrage spread &ge; (%)</option>
+                    <option value="lowvolume">Top-N total volume &le;</option>
+                </select>
+                <input type="number" id="alert-price" placeholder="Price / % / Qty" step="any" style="width:120px;">
+                <button id="add-alert-btn">Add Alert</button>
+                <ul id="alert-list"></ul>
+            </div>
 
-    <div id="comparison-panel">
-        <b>Exchange Price Comparison</b>
-        <table id="comparison-table">
-            <thead>
-                <tr><th>Exchange</th><th>Best Bid</th><th>Best Ask</th><th>Spread</th><th>Spread %</th><th>Bid VWAP</th><th>Ask VWAP</th><th>Imbalance</th></tr>
-            </thead>
-            <tbody></tbody>
-        </table>
-        <div id="arbitrage-info"></div>
-        <div id="agg-imbalance-container">
-            <span>Aggregate Imbalance (Bids vs Asks):</span>
-            <div id="agg-imbalance-bar"><div id="agg-imbalance-fill"></div></div>
-            <span id="agg-imbalance-label">0% / 0%</span>
+            <div id="slippage-panel">
+                <b>Slippage Calculator</b>
+                <select id="slippage-side">
+                    <option value="buy">Buy (hits Asks)</option>
+                    <option value="sell">Sell (hits Bids)</option>
+                </select>
+                <input type="number" id="slippage-qty" placeholder="Quantity" step="any" style="width:100px;">
+                <button id="slippage-calc-btn">Calculate</button>
+                <div id="slippage-result"></div>
+            </div>
+
+            <div id="export-panel">
+                <b>Export / Research Log</b>
+                <button id="export-csv-btn">Export Current Snapshot (CSV)</button>
+                <button id="export-json-btn">Export Current Snapshot (JSON)</button>
+                <label><input type="checkbox" id="log-record-toggle"> Log every fetch to memory</label>
+                <button id="export-log-btn">Download Log (JSON)</button>
+                <span id="log-count">0 entries logged</span>
+            </div>
         </div>
     </div>
 
-    <div id="depth-panel">
-        <b>Cumulative Depth Chart</b>
-        <div id="depthchart"></div>
-    </div>
+    <div id="dashboard-grid">
+        <div id="comparison-panel">
+            <b>Exchange Price Comparison</b>
+            <table id="comparison-table">
+                <thead>
+                    <tr><th>Exchange</th><th>Best Bid</th><th>Best Ask</th><th>Spread</th><th>Spread %</th><th>Bid VWAP</th><th>Ask VWAP</th><th>Imbalance</th></tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div id="arbitrage-info"></div>
+            <div id="agg-imbalance-container">
+                <span>Aggregate Imbalance (Bids vs Asks):</span>
+                <div id="agg-imbalance-bar"><div id="agg-imbalance-fill"></div></div>
+                <span id="agg-imbalance-label">0% / 0%</span>
+            </div>
+        </div>
 
-    <div id="slippage-panel">
-        <b>Slippage Calculator</b>
-        <select id="slippage-side">
-            <option value="buy">Buy (hits Asks)</option>
-            <option value="sell">Sell (hits Bids)</option>
-        </select>
-        <input type="number" id="slippage-qty" placeholder="Quantity" step="any" style="width:100px;">
-        <button id="slippage-calc-btn">Calculate</button>
-        <div id="slippage-result"></div>
-    </div>
+        <div id="depth-panel">
+            <b>Cumulative Depth Chart</b>
+            <div id="depthchart"></div>
+        </div>
 
-    <div id="history-panel">
-        <b>Spread History</b>
-        <label><input type="checkbox" id="history-record-toggle"> Record snapshots on each fetch</label>
-        <div id="spreadhistorychart"></div>
-    </div>
+        <div id="history-panel">
+            <b>Spread History</b>
+            <label><input type="checkbox" id="history-record-toggle"> Record snapshots on each fetch</label>
+            <div id="spreadhistorychart"></div>
+        </div>
 
-    <div id="watchlist-panel">
-        <b>Multi-Symbol Watchlist</b> (uses currently selected exchanges)
-        <input type="text" id="watch-symbol-input" placeholder="e.g. ETHUSDT">
-        <button id="watch-add-btn">Add to Watchlist</button>
-        <button id="watch-refresh-btn">Refresh Watchlist</button>
-        <table id="watchlist-table">
-            <thead><tr><th>Symbol</th><th>Best Bid</th><th>Best Ask</th><th>Spread %</th><th></th></tr></thead>
-            <tbody></tbody>
-        </table>
-    </div>
-
-    <div id="export-panel">
-        <b>Export / Research Log</b>
-        <button id="export-csv-btn">Export Current Snapshot (CSV)</button>
-        <button id="export-json-btn">Export Current Snapshot (JSON)</button>
-        <label><input type="checkbox" id="log-record-toggle"> Log every fetch to memory</label>
-        <button id="export-log-btn">Download Log (JSON)</button>
-        <span id="log-count">0 entries logged</span>
+        <div id="watchlist-panel">
+            <b>Multi-Symbol Watchlist</b> (uses currently selected exchanges)
+            <input type="text" id="watch-symbol-input" placeholder="e.g. ETHUSDT">
+            <button id="watch-add-btn">Add to Watchlist</button>
+            <button id="watch-refresh-btn">Refresh Watchlist</button>
+            <table id="watchlist-table">
+                <thead><tr><th>Symbol</th><th>Best Bid</th><th>Best Ask</th><th>Spread %</th><th></th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
     </div>
 
 	<div id="versionInfo" style="position: fixed; bottom: 0; right: 0; margin: 1px;">
 		<a><a href="https://chromewebstore.google.com/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf" style="font-weight: bold; margin-right: 5px;">Install CORS browser extension to see data from all exchanges ❗❗</a></a>	
 		<a href="https://github.com/NotDev1/combined-orderbook-exchanges" style="font-weight: bold; margin-right: 5px;">#1.20000000</a>
-		<a href="https://t.me/beitemian" style="font-weight: bold; margin-right: 5px;">Contacts</a>	
+		<a href="https://t.me/msiresearch" style="font-weight: bold; margin-right: 5px;">Contacts</a>	
 	</div>
     <script src="script.js"></script>
 	<script src="exchanges.js"></script>
