@@ -15,7 +15,8 @@ function unselectAllExchanges() {
 function setChartHeight() {
 	var windowHeight = window.innerHeight;
 	var chartContainer = document.getElementById('orderbookchart');
-	var chartHeight = windowHeight - chartContainer.offsetTop - 10; 
+	var available = windowHeight - chartContainer.offsetTop - 10;
+	var chartHeight = Math.max(260, Math.min(available, 520));
 	chartContainer.style.height = chartHeight + 'px';
 }
 
