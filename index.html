@@ -11,7 +11,9 @@
             flex-direction: column;
             align-items: flex-start;
             margin: 0;
-            padding: 0;
+            padding: 8px;
+            background: #f4f5f7;
+            color: #1a1a1a;
         }
         button {
             font-size: 11px; 
@@ -91,6 +93,13 @@
         #config-container {
             display: inline-block;
             margin-left: 5px;
+        }
+        #alerts-panel, #comparison-panel, #depth-panel, #slippage-panel,
+        #history-panel, #watchlist-panel, #export-panel, #ladder-panel {
+            background: #ffffff;
+            border: 1px solid #dcdfe4;
+            border-radius: 6px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
         #alerts-panel, #comparison-panel {
             border: 1px solid #ccc;
@@ -211,6 +220,60 @@
                 min-width: 0;
                 width: 100%;
             }
+        }
+        #ladder-panel {
+            border: 1px solid #ccc;
+            padding: 6px;
+        }
+        #ladder-container {
+            font-variant-numeric: tabular-nums;
+            font-size: 10px;
+        }
+        .ladder-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            padding: 2px 4px;
+            border-bottom: 1px solid #ccc;
+        }
+        .ladder-row {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            padding: 2px 4px;
+            overflow: hidden;
+        }
+        .ladder-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 0;
+        }
+        .ask-row .ladder-bar {
+            background: rgba(198, 40, 40, 0.35);
+        }
+        .bid-row .ladder-bar {
+            background: rgba(46, 125, 50, 0.35);
+        }
+        .ladder-price, .ladder-qty {
+            position: relative;
+            z-index: 1;
+        }
+        .ask-row .ladder-price {
+            color: #c62828;
+            font-weight: bold;
+        }
+        .bid-row .ladder-price {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+        .ladder-mid {
+            text-align: center;
+            font-weight: bold;
+            padding: 3px 0;
+            background: #f0f0f0;
+            margin: 2px 0;
         }
         #depthchart, #spreadhistorychart {
             width: 100%;
@@ -383,6 +446,11 @@
         <div id="depth-panel">
             <b>Cumulative Depth Chart</b>
             <div id="depthchart"></div>
+        </div>
+
+        <div id="ladder-panel">
+            <b>Order Book Heatmap (Price Ladder)</b>
+            <div id="ladder-container"></div>
         </div>
 
         <div id="history-panel">
