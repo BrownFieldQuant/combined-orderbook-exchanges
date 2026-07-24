@@ -283,11 +283,57 @@ function exportLogJSON() {
     downloadBlob(JSON.stringify(fetchLog, null, 2), `orderbook-fetch-log-${Date.now()}.json`, 'application/json');
 }
 
+const LADDER_DEPTH = 15;
+
+function buildPriceLadder(data, symbol) {
+    const container = document.getElementById('ladder-container');
+    if (!container) return;
+
+    const askMap = new Map();
+    const bidMap = new Map();
+    data.forEach(({ asks, bids }) => {
+        asks.forEach(([p, q]) => askMap.set(p, (askMap.get(p) || 0) + q));
+        bids.forEach(([p, q]) => bidMap.set(p, (bidMap.get(p) || 0) + q));
+    });
+
+    const askLevels = Array.from(askMap.entries()).sort((a, b) => a[0] - b[0]).slice(0, LADDER_DEPTH);
+    const bidLevels = Array.from(bidMap.entries()).sort((a, b) => b[0] - a[0]).slice(0, LADDER_DEPTH);
+
+    if (askLevels.length === 0 && bidLevels.length === 0) {
+        container.innerHTML = '<div class="ladder-mid">No data</div>';
+        return;
+    }
+
+    const maxQty = Math.max(0.000001, ...askLevels.map(l => l[1]), ...bidLevels.map(l => l[1]));
+    const bestAsk = askLevels.length ? askLevels[0][0] : null;
+    const bestBid = bidLevels.length ? bidLevels[0][0] : null;
+    const spreadLabel = (bestAsk !== null && bestBid !== null)
+        ? `Spread: ${(bestAsk - bestBid).toFixed(6)} (${((bestAsk - bestBid) / bestBid * 100).toFixed(3)}%)`
+        : symbol;
+
+    let html = '<div class="ladder-header"><span>Price</span><span>Qty</span></div>';
+
+    askLevels.slice().reverse().forEach(([p, q]) => {
+        const pct = Math.min(100, (q / maxQty * 100)).toFixed(1);
+        html += `<div class="ladder-row ask-row"><div class="ladder-bar" style="width:${pct}%"></div><span class="ladder-price">${p}</span><span class="ladder-qty">${q.toFixed(4)}</span></div>`;
+    });
+
+    html += `<div class="ladder-mid">${spreadLabel}</div>`;
+
+    bidLevels.forEach(([p, q]) => {
+        const pct = Math.min(100, (q / maxQty * 100)).toFixed(1);
+        html += `<div class="ladder-row bid-row"><div class="ladder-bar" style="width:${pct}%"></div><span class="ladder-price">${p}</span><span class="ladder-qty">${q.toFixed(4)}</span></div>`;
+    });
+
+    container.innerHTML = html;
+}
+
 /* --------------------------------- INIT ---------------------------------- */
 
 // Central hook: script.js calls this after every successful fetchData().
 window.onOrderbookFetched = function (data, symbol) {
     buildDepthChart(data, symbol);
+    buildPriceLadder(data, symbol);
 
     if (document.getElementById('history-record-toggle')?.checked) {
         recordSpreadPoint(data, symbol);
