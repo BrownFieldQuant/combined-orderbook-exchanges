@@ -190,6 +190,14 @@
         #chart-col #orderbookchart {
             width: 100%;
         }
+        #chart-credit {
+            text-align: center;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
         #side-col {
             flex: 1 1 320px;
             min-width: 300px;
@@ -299,9 +307,79 @@
         #export-panel button, #export-panel label {
             margin-right: 6px;
         }
+        #app-content {
+            opacity: 0;
+        }
+        #app-content.revealed {
+            opacity: 1;
+            transition: opacity 0.6s ease;
+        }
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.6s ease;
+        }
+        #loading-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #loading-logo {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            margin-bottom: 18px;
+            font-family: Arial, sans-serif;
+        }
+        #loading-spinner {
+            width: 34px;
+            height: 34px;
+            border: 3px solid rgba(255,255,255,0.2);
+            border-top-color: #4ade80;
+            border-radius: 50%;
+            animation: loading-spin 0.9s linear infinite;
+            margin-bottom: 16px;
+        }
+        @keyframes loading-spin {
+            to { transform: rotate(360deg); }
+        }
+        #loading-status {
+            color: #cbd5e1;
+            font-size: 13px;
+            font-family: Arial, sans-serif;
+            margin-bottom: 14px;
+            min-height: 16px;
+        }
+        #loading-bar-track {
+            width: 260px;
+            height: 6px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        #loading-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: #4ade80;
+            border-radius: 3px;
+            transition: width 0.3s linear;
+        }
     </style>
 </head>
 <body>
+    <div id="loading-screen">
+        <div id="loading-logo">Lowcost Research</div>
+        <div id="loading-spinner"></div>
+        <div id="loading-status">Initializing...</div>
+        <div id="loading-bar-track"><div id="loading-bar-fill"></div></div>
+    </div>
+    <div id="app-content">
     <div id="controls">
         <div id="dropdown" class="dropdown">
             <button>Exchanges</button>
@@ -388,6 +466,7 @@
     <div id="main-dashboard">
         <div id="chart-col">
             <div id="orderbookchart"></div>
+            <div id="chart-credit">Lowcost Research</div>
         </div>
 
         <div id="side-col">
@@ -476,9 +555,11 @@
 		<a href="https://github.com/NotDev1/combined-orderbook-exchanges" style="font-weight: bold; margin-right: 5px;">#1.20000000</a>
 		<a href="https://t.me/msiresearch" style="font-weight: bold; margin-right: 5px;">Contacts</a>	
 	</div>
+    </div>
     <script src="script.js"></script>
 	<script src="exchanges.js"></script>
 	<script src="features.js"></script>
 	<script src="research.js"></script>
+	<script src="loading.js"></script>
 </body>
 </html>
