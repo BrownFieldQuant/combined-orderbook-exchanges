@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Combined Order Book Data Chart</title>
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <style>
+        body {
+            font-size: 10px;
+            font-family: "Noto Sans Sundanese", sans-serif;
+            flex-direction: column;
+            align-items: flex-start;
+            margin: 0;
+            padding: 0;
+        }
+        button {
+            font-size: 11px; 
+        }
+        #destroyChartButton {
+            font-weight: bold; 
+        }
+        #controls {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        #dropdown,
+        #symbol-dropdown,
+        #fetch-data,
+        #auto-refresh-container,
+        #zoom-container {
+            display: inline-block;
+            margin-right: 5px; 
+        }
+        #dropdown,
+        #symbol-dropdown {
+            width: auto; 
+        }
+        #fetch-data {
+            width: auto;
+        }
+        .dropdown-content,
+        .symbol-dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+            max-height: 500px; 
+            overflow-y: auto; 
+        }
+        .dropdown-content label,
+        .symbol-dropdown-content label {
+            display: block;
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        .dropdown-content label:hover,
+        .symbol-dropdown-content label:hover {
+            background-color: #f1f1f1;
+        }
+        .dropdown:hover .dropdown-content,
+        .symbol-dropdown:hover .symbol-dropdown-content {
+            display: block;
+        }
+        #orderbookchart {
+            width: 570px;
+            padding: 1px; 
+            resize: both; 
+            overflow: auto; 
+            border: 1px solid black; 
+        }
+        #auto-refresh-container {
+            display: flex;
+            align-items: center;
+        }
+        #total-info {
+            font-weight: bold; 
+            margin-top: 1px;
+        }
+        #zoom-container {
+            display: flex;
+            align-items: center;
+        }
+
+        #zoom-container button {
+            font-weight: bold; 
+            margin-right: 5px; 
+        }
+        #config-container {
+            display: inline-block;
+            margin-left: 5px;
+        }
+        #alerts-panel, #comparison-panel {
+            border: 1px solid #ccc;
+            padding: 6px;
+            margin-top: 6px;
+            max-width: 570px;
+        }
+        #alert-list {
+            list-style: none;
+            padding: 0;
+            margin: 4px 0 0 0;
+        }
+        #alert-list li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 3px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        #alert-list li.triggered {
+            color: #fff;
+            background: #d9534f;
+            padding-left: 4px;
+        }
+        #alert-list button {
+            margin-left: 8px;
+        }
+        #comparison-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 4px;
+        }
+        #comparison-table th, #comparison-table td {
+            border: 1px solid #ddd;
+            padding: 3px 6px;
+            text-align: right;
+        }
+        #comparison-table th:first-child, #comparison-table td:first-child {
+            text-align: left;
+        }
+        #comparison-table tr.best-bid td:nth-child(2) {
+            background: #c8f7c5;
+            font-weight: bold;
+        }
+        #comparison-table tr.best-ask td:nth-child(3) {
+            background: #c8f7c5;
+            font-weight: bold;
+        }
+        #arbitrage-info {
+            margin-top: 4px;
+            font-weight: bold;
+        }
+        #arbitrage-info.positive {
+            color: #2e7d32;
+        }
+        #agg-imbalance-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        #agg-imbalance-bar {
+            flex: 1;
+            height: 12px;
+            background: #f28b82;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        #agg-imbalance-fill {
+            height: 100%;
+            background: #81c995;
+            width: 50%;
+        }
+        #depth-panel, #slippage-panel, #history-panel, #watchlist-panel, #export-panel {
+            border: 1px solid #ccc;
+            padding: 6px;
+            margin-top: 6px;
+            max-width: 570px;
+        }
+        #depthchart, #spreadhistorychart {
+            width: 100%;
+            height: 220px;
+        }
+        #slippage-result {
+            margin-top: 4px;
+            font-weight: bold;
+        }
+        #watchlist-table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 4px;
+        }
+        #watchlist-table th, #watchlist-table td {
+            border: 1px solid #ddd;
+            padding: 3px 6px;
+            text-align: right;
+        }
+        #watchlist-table th:first-child, #watchlist-table td:first-child {
+            text-align: left;
+        }
+        #export-panel button, #export-panel label {
+            margin-right: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <div id="dropdown" class="dropdown">
+            <button>Exchanges</button>
+            <div class="dropdown-content">
+                <input type="text" id="exchange-search" placeholder="Search exchanges..." onkeyup="filterExchanges()">
+                <button onclick="selectAllExchanges()">Select All</button>
+                <button onclick="unselectAllExchanges()">Unselect All</button>				
+                <label><input type="checkbox" class="exchange" value="Ascendex"> Ascendex</label>
+                <label><input type="checkbox" class="exchange" value="Azbit"> Azbit</label>
+                <label><input type="checkbox" class="exchange" value="Bequant"> Bequant</label>
+                <label><input type="checkbox" class="exchange" value="BigOne"> BigOne</label>
+                <label><input type="checkbox" class="exchange" value="Binance"> Binance</label>
+                <label><input type="checkbox" class="exchange" value="BinanceUS"> BinanceUS</label>
+                <label><input type="checkbox" class="exchange" value="Bitbns"> Bitbns</label>
+                <label><input type="checkbox" class="exchange" value="Bitdelta"> Bitdelta</label>
+                <label><input type="checkbox" class="exchange" value="Bitfinex"> Bitfinex</label>
+                <label><input type="checkbox" class="exchange" value="Bitget"> Bitget</label>
+                <label><input type="checkbox" class="exchange" value="Bitmart"> Bitmart</label>
+                <label><input type="checkbox" class="exchange" value="Bitso"> Bitso</label>
+                <label><input type="checkbox" class="exchange" value="Bitstamp"> Bitstamp</label>
+                <label><input type="checkbox" class="exchange" value="Bybit"> Bybit</label>
+                <label><input type="checkbox" class="exchange" value="Coinbase"> Coinbase</label>
+                <label><input type="checkbox" class="exchange" value="Coinex"> Coinex</label>
+                <label><input type="checkbox" class="exchange" value="Digifinex"> Digifinex</label>
+                <label><input type="checkbox" class="exchange" value="Exmo"> Exmo</label>
+                <label><input type="checkbox" class="exchange" value="Fmfw"> Fmfw</label>
+                <label><input type="checkbox" class="exchange" value="Gateio"> Gateio</label>
+                <label><input type="checkbox" class="exchange" value="Hitbtc"> Hitbtc</label>
+                <label><input type="checkbox" class="exchange" value="Huobi"> Huobi</label>
+                <label><input type="checkbox" class="exchange" value="Kraken"> Kraken</label>
+                <label><input type="checkbox" class="exchange" value="Kucoin"> Kucoin</label>
+                <label><input type="checkbox" class="exchange" value="MEXC"> MEXC</label>
+				<label><input type="checkbox" class="exchange" value="Poloniex"> Poloniex</label>
+				<label><input type="checkbox" class="exchange" value="Probit"> Probit</label>
+				<label><input type="checkbox" class="exchange" value="Wazirx"> Wazirx</label>
+				<label><input type="checkbox" class="exchange" value="Whitebit"> Whitebit</label>
+				<label><input type="checkbox" class="exchange" value="Websea"> Websea</label>				
+            </div>
+        </div>
+        <div id="symbol-dropdown" class="symbol-dropdown">
+            <button>Symbols</button>
+            <div class="symbol-dropdown-content">
+                <input type="text" id="symbol-search" placeholder="Search symbols..." onkeyup="filterSymbols()">
+            </div>
+        </div>
+        <button id="fetch-data">Fetch Data</button>
+        <div id="auto-refresh-container">
+            <input type="checkbox" id="auto-refresh">
+            <label for="auto-refresh">Auto Refresh</label>
+        </div>
+		<div id="add-symbol-container">
+			<input type="text" id="add-symbol-input" placeholder="Enter symbol...">
+			<button id="add-symbol-button">Add Symbol</button>
+		</div>		
+        <button id="destroyChartButton" title="Delete chart and create new one if you encounter any errors" style="color: red;">X</button>
+        <div id="config-container">
+            <button id="save-config-btn" title="Save current exchanges, symbol, slice size to browser">Save Config</button>
+            <button id="load-config-btn" title="Load previously saved config">Load Config</button>
+            <button id="export-config-btn" title="Export config as JSON file">Export</button>
+            <button id="import-config-btn" title="Import config from JSON file">Import</button>
+            <input type="file" id="import-config-input" accept="application/json" style="display:none;">
+        </div>
+    </div>
+    <div>
+        <div id="zoom-container">
+            <button id="zoom-in">+</button>
+            <button id="zoom-out">-</button>
+            <select id="slice-size">
+                <option value="1">Top 1</option>
+                <option value="2">Top 2</option>
+                <option value="3">Top 3</option>
+                <option value="4">Top 4</option>
+                <option value="5">Top 5</option>
+                <option value="10">Top 10</option>
+                <option value="15">Top 15</option>
+                <option value="25">Top 25</option>
+                <option value="30">Top 30</option>
+                <option value="50">Top 50</option>
+                <option value="100">Top 100</option>
+            </select>            
+            <div id="total-info">Asks: 0.00% Bids: 0.00%</div>    
+        </div>  
+    </div>  
+    <div id="orderbookchart"></div>
+
+    <div id="alerts-panel">
+        <b>Price Alerts</b>
+        <select id="alert-condition">
+            <option value="above">Best Ask &le;</option>
+            <option value="below">Best Bid &ge;</option>
+            <option value="arbitrage">Arbitrage spread &ge; (%)</option>
+            <option value="lowvolume">Top-N total volume &le;</option>
+        </select>
+        <input type="number" id="alert-price" placeholder="Price / % / Qty" step="any" style="width:120px;">
+        <button id="add-alert-btn">Add Alert</button>
+        <ul id="alert-list"></ul>
+    </div>
+
+    <div id="comparison-panel">
+        <b>Exchange Price Comparison</b>
+        <table id="comparison-table">
+            <thead>
+                <tr><th>Exchange</th><th>Best Bid</th><th>Best Ask</th><th>Spread</th><th>Spread %</th><th>Bid VWAP</th><th>Ask VWAP</th><th>Imbalance</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div id="arbitrage-info"></div>
+        <div id="agg-imbalance-container">
+            <span>Aggregate Imbalance (Bids vs Asks):</span>
+            <div id="agg-imbalance-bar"><div id="agg-imbalance-fill"></div></div>
+            <span id="agg-imbalance-label">0% / 0%</span>
+        </div>
+    </div>
+
+    <div id="depth-panel">
+        <b>Cumulative Depth Chart</b>
+        <div id="depthchart"></div>
+    </div>
+
+    <div id="slippage-panel">
+        <b>Slippage Calculator</b>
+        <select id="slippage-side">
+            <option value="buy">Buy (hits Asks)</option>
+            <option value="sell">Sell (hits Bids)</option>
+        </select>
+        <input type="number" id="slippage-qty" placeholder="Quantity" step="any" style="width:100px;">
+        <button id="slippage-calc-btn">Calculate</button>
+        <div id="slippage-result"></div>
+    </div>
+
+    <div id="history-panel">
+        <b>Spread History</b>
+        <label><input type="checkbox" id="history-record-toggle"> Record snapshots on each fetch</label>
+        <div id="spreadhistorychart"></div>
+    </div>
+
+    <div id="watchlist-panel">
+        <b>Multi-Symbol Watchlist</b> (uses currently selected exchanges)
+        <input type="text" id="watch-symbol-input" placeholder="e.g. ETHUSDT">
+        <button id="watch-add-btn">Add to Watchlist</button>
+        <button id="watch-refresh-btn">Refresh Watchlist</button>
+        <table id="watchlist-table">
+            <thead><tr><th>Symbol</th><th>Best Bid</th><th>Best Ask</th><th>Spread %</th><th></th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <div id="export-panel">
+        <b>Export / Research Log</b>
+        <button id="export-csv-btn">Export Current Snapshot (CSV)</button>
+        <button id="export-json-btn">Export Current Snapshot (JSON)</button>
+        <label><input type="checkbox" id="log-record-toggle"> Log every fetch to memory</label>
+        <button id="export-log-btn">Download Log (JSON)</button>
+        <span id="log-count">0 entries logged</span>
+    </div>
+
+	<div id="versionInfo" style="position: fixed; bottom: 0; right: 0; margin: 1px;">
+		<a><a href="https://chromewebstore.google.com/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf" style="font-weight: bold; margin-right: 5px;">Install CORS browser extension to see data from all exchanges ❗❗</a></a>	
+		<a href="https://github.com/NotDev1/combined-orderbook-exchanges" style="font-weight: bold; margin-right: 5px;">#1.20000000</a>
+		<a href="https://t.me/beitemian" style="font-weight: bold; margin-right: 5px;">Contacts</a>	
+	</div>
+    <script src="script.js"></script>
+	<script src="exchanges.js"></script>
+	<script src="features.js"></script>
+	<script src="research.js"></script>
+</body>
+</html>
