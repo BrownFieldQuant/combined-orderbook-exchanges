@@ -795,6 +795,31 @@
             background: #171b26;
             color: #c9975a;
         }
+        #binance-ws-container {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-right: 5px;
+        }
+        #watchlist-ws-container {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-right: 5px;
+        }
+        #binance-ws-status, #watchlist-ws-status {
+            font-size: 9px;
+            font-weight: bold;
+        }
+        #binance-ws-status.live, #watchlist-ws-status.live {
+            color: #3ecf8e;
+        }
+        #binance-ws-status.off, #watchlist-ws-status.off {
+            color: #6b7280;
+        }
+        #binance-ws-status.error, #watchlist-ws-status.error {
+            color: #ef5350;
+        }
     </style>
 </head>
 <body>
@@ -860,6 +885,22 @@
         <div id="auto-refresh-container">
             <input type="checkbox" id="auto-refresh">
             <label for="auto-refresh">Auto Refresh</label>
+            <select id="auto-refresh-interval" title="Auto refresh interval">
+                <option value="3000">3s</option>
+                <option value="5000">5s</option>
+                <option value="10000" selected>10s</option>
+                <option value="30000">30s</option>
+            </select>
+        </div>
+        <div id="binance-ws-container">
+            <input type="checkbox" id="binance-ws-toggle">
+            <label for="binance-ws-toggle" title="Streams Binance's order book live via WebSocket (~100ms updates) instead of REST polling">Binance Live (WS)</label>
+            <span id="binance-ws-status"></span>
+        </div>
+        <div id="watchlist-ws-container">
+            <input type="checkbox" id="watchlist-ws-toggle">
+            <label for="watchlist-ws-toggle" title="Streams live prices for every symbol in your Watchlist via Binance WebSocket, feeding Asset Compare automatically (no manual refresh needed)">Watchlist Live (WS)</label>
+            <span id="watchlist-ws-status"></span>
         </div>
 		<div id="add-symbol-container">
 			<input type="text" id="add-symbol-input" placeholder="Enter symbol...">
@@ -1013,17 +1054,14 @@
         <div id="quant-quad-grid">
             <div class="quant-cell">
                 <div class="quant-cell-title">Mid Price</div>
-                <div class="quant-cell-watermark">Lowcost Research</div>
                 <div id="qa-chart-mid" class="quant-cell-chart"></div>
             </div>
             <div class="quant-cell">
                 <div class="quant-cell-title">Cumulative Order Flow Imbalance</div>
-                <div class="quant-cell-watermark">Lowcost Research</div>
                 <div id="qa-chart-ofi" class="quant-cell-chart"></div>
             </div>
             <div class="quant-cell">
                 <div class="quant-cell-title">Spread Z-score</div>
-                <div class="quant-cell-watermark">Lowcost Research</div>
                 <div id="qa-chart-zscore" class="quant-cell-chart"></div>
             </div>
             <div class="quant-cell">
@@ -1059,12 +1097,10 @@
         <div id="compare-grid">
             <div class="quant-cell" id="compare-perf-cell">
                 <div class="quant-cell-title">Relative Performance (rebased to 100)</div>
-                <div class="quant-cell-watermark">Lowcost Research</div>
                 <div id="compare-perf-chart" class="quant-cell-chart"></div>
             </div>
             <div class="quant-cell" id="compare-vol-cell">
                 <div class="quant-cell-title">Volatility Comparison (annualized)</div>
-                <div class="quant-cell-watermark">Lowcost Research</div>
                 <div id="compare-vol-chart" class="quant-cell-chart"></div>
             </div>
         </div>
@@ -1087,6 +1123,7 @@
 	<script src="exchanges.js"></script>
 	<script src="features.js"></script>
 	<script src="research.js"></script>
+	<script src="binance-ws.js"></script>
 	<script src="loading.js"></script>
 </body>
 </html>
