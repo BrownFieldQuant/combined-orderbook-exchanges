@@ -238,6 +238,7 @@ async function refreshWatchlist() {
         } else {
             const spreadPct = ((bestAsk - bestBid) / bestBid * 100).toFixed(3);
             tr.innerHTML = `<td>${symbol}</td><td>${bestBid}</td><td>${bestAsk}</td><td>${spreadPct}%</td><td>${removeBtn}</td>`;
+            recordSimpleQuantPoint(symbol, (bestBid + bestAsk) / 2);
         }
     }
 }
@@ -475,6 +476,16 @@ function saveQuantHistory(symbol, history) {
     }
 }
 
+// Lightweight recorder used by the watchlist (mid price only, no OFI/z-score),
+// so any symbol in the watchlist also builds up history for Asset Compare.
+function recordSimpleQuantPoint(symbol, midPrice) {
+    const history = loadQuantHistory(symbol);
+    const lastCofi = history.length ? history[history.length - 1].cofi : 0;
+    history.push({ time: Date.now(), mid: midPrice, cofi: lastCofi, zscore: 0 });
+    if (history.length > QUANT_HISTORY_MAX) history.splice(0, history.length - QUANT_HISTORY_MAX);
+    saveQuantHistory(symbol, history);
+}
+
 function updateQuantAnalyticsStats(symbol, midPrice, microprice, history) {
     const symLabel = document.getElementById('quant-analytics-symbol');
     if (symLabel) symLabel.textContent = symbol;
@@ -583,6 +594,179 @@ function initQuantRangeButtons() {
     });
 }
 
+/* --------------------------- ASSET COMPARE TAB --------------------------- */
+
+const COMPARE_COLORS = ['#c9975a', '#5aa9e6', '#3ecf8e', '#ef5350', '#b48ead', '#e5c07b', '#56b6c2', '#e06c75'];
+let selectedCompareRange = '1h';
+let selectedCompareSymbols = new Set();
+let compareChartPerf = null;
+let compareChartVol = null;
+
+function getComparableSymbols() {
+    const watch = loadWatchlist();
+    const mainSymbol = document.querySelector('.symbol:checked')?.value;
+    const all = new Set(watch);
+    if (mainSymbol) all.add(mainSymbol);
+    return Array.from(all);
+}
+
+function populateCompareSymbolList() {
+    const container = document.getElementById('compare-symbol-list');
+    if (!container) return;
+    const symbols = getComparableSymbols();
+
+    if (selectedCompareSymbols.size === 0) {
+        symbols.forEach(s => selectedCompareSymbols.add(s));
+    }
+
+    if (symbols.length === 0) {
+        container.innerHTML = '<span style="color:#6b7280;font-size:10px;">Add symbols to your Watchlist on the Order Book tab first.</span>';
+        return;
+    }
+
+    container.innerHTML = '';
+    symbols.forEach(sym => {
+        const label = document.createElement('label');
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = selectedCompareSymbols.has(sym);
+        checkbox.addEventListener('change', () => {
+            if (checkbox.checked) selectedCompareSymbols.add(sym);
+            else selectedCompareSymbols.delete(sym);
+            renderAssetCompare();
+        });
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(sym));
+        container.appendChild(label);
+    });
+}
+
+function logReturns(values) {
+    const returns = [];
+    for (let i = 1; i < values.length; i++) {
+        if (values[i - 1] > 0 && values[i] > 0) returns.push(Math.log(values[i] / values[i - 1]));
+    }
+    return returns;
+}
+
+function pearsonCorrelation(a, b) {
+    const n = Math.min(a.length, b.length);
+    if (n < 3) return null;
+    const x = a.slice(-n), y = b.slice(-n);
+    const meanX = x.reduce((s, v) => s + v, 0) / n;
+    const meanY = y.reduce((s, v) => s + v, 0) / n;
+    let num = 0, denX = 0, denY = 0;
+    for (let i = 0; i < n; i++) {
+        const dx = x[i] - meanX, dy = y[i] - meanY;
+        num += dx * dy;
+        denX += dx * dx;
+        denY += dy * dy;
+    }
+    const den = Math.sqrt(denX * denY);
+    return den === 0 ? null : num / den;
+}
+
+function renderAssetCompare() {
+    if (typeof Highcharts === 'undefined') return;
+    populateCompareSymbolList();
+
+    const symbols = Array.from(selectedCompareSymbols).filter(s => getComparableSymbols().includes(s));
+    const rangeMs = QUANT_RANGES[selectedCompareRange];
+    const cutoff = rangeMs === Infinity ? 0 : Date.now() - rangeMs;
+
+    const seriesData = symbols.map((sym, idx) => {
+        const history = loadQuantHistory(sym).filter(p => p.time >= cutoff);
+        return { symbol: sym, color: COMPARE_COLORS[idx % COMPARE_COLORS.length], points: history };
+    }).filter(s => s.points.length >= 2);
+
+    // --- Relative performance (rebased to 100) ---
+    const perfSeries = seriesData.map(s => {
+        const base = s.points[0].mid;
+        return {
+            name: s.symbol,
+            type: 'line',
+            color: s.color,
+            marker: { enabled: false },
+            data: s.points.map(p => [p.time, base > 0 ? (p.mid / base * 100) : null])
+        };
+    });
+    const perfOptions = {
+        chart: { animation: false, backgroundColor: 'transparent' },
+        title: { text: null },
+        credits: { enabled: false },
+        legend: { itemStyle: { color: '#d7dde5', fontSize: '9px' } },
+        xAxis: { type: 'datetime', labels: { style: { fontSize: '8px', color: '#9aa4b5' } }, lineColor: '#232838', tickColor: '#232838' },
+        yAxis: { title: { text: null }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130', plotLines: [{ value: 100, color: '#6b7280', dashStyle: 'Dash', width: 1 }] },
+        tooltip: { shared: true, valueDecimals: 2 },
+        series: perfSeries
+    };
+    const perfEl = document.getElementById('compare-perf-chart');
+    if (perfEl) {
+        if (!compareChartPerf) compareChartPerf = Highcharts.chart('compare-perf-chart', perfOptions);
+        else compareChartPerf.update(perfOptions, true, true);
+    }
+
+    // --- Volatility comparison (annualized %, from log returns) ---
+    const volData = seriesData.map(s => {
+        const returns = logReturns(s.points.map(p => p.mid));
+        if (returns.length < 3) return { symbol: s.symbol, vol: 0, color: s.color };
+        const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
+        const variance = returns.reduce((a, b) => a + (b - mean) ** 2, 0) / returns.length;
+        const vol = Math.sqrt(variance) * Math.sqrt(365 * 24 * 12) * 100;
+        return { symbol: s.symbol, vol, color: s.color };
+    });
+    const volOptions = {
+        chart: { type: 'column', animation: false, backgroundColor: 'transparent' },
+        title: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: { categories: volData.map(v => v.symbol), labels: { style: { fontSize: '9px', color: '#d7dde5' } }, lineColor: '#232838' },
+        yAxis: { title: { text: 'Annualized Vol %', style: { color: '#9aa4b5', fontSize: '9px' } }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130' },
+        tooltip: { valueDecimals: 2 },
+        plotOptions: { column: { colorByPoint: true } },
+        series: [{ name: 'Volatility', data: volData.map(v => ({ y: v.vol, color: v.color })) }]
+    };
+    const volEl = document.getElementById('compare-vol-chart');
+    if (volEl) {
+        if (!compareChartVol) compareChartVol = Highcharts.chart('compare-vol-chart', volOptions);
+        else compareChartVol.update(volOptions, true, true);
+    }
+
+    // --- Correlation matrix ---
+    const corrTbody = document.querySelector('#compare-corr-table tbody');
+    if (corrTbody) {
+        const returnsMap = seriesData.map(s => ({ symbol: s.symbol, returns: logReturns(s.points.map(p => p.mid)) }));
+        let html = '<tr><th></th>' + returnsMap.map(r => `<th>${r.symbol}</th>`).join('') + '</tr>';
+        returnsMap.forEach(rowSym => {
+            html += `<tr><th>${rowSym.symbol}</th>`;
+            returnsMap.forEach(colSym => {
+                if (rowSym.symbol === colSym.symbol) {
+                    html += '<td>1.00</td>';
+                } else {
+                    const corr = pearsonCorrelation(rowSym.returns, colSym.returns);
+                    const cls = corr === null ? '' : (corr > 0.3 ? 'quant-positive' : (corr < -0.3 ? 'quant-negative' : ''));
+                    html += `<td class="${cls}">${corr === null ? 'n/a' : corr.toFixed(2)}</td>`;
+                }
+            });
+            html += '</tr>';
+        });
+        corrTbody.innerHTML = returnsMap.length > 0 ? html : '<tr><td>Not enough data yet — keep fetching to build history.</td></tr>';
+    }
+}
+
+function initCompareControls() {
+    document.getElementById('compare-refresh-btn')?.addEventListener('click', renderAssetCompare);
+    const rangeContainer = document.getElementById('compare-range-buttons');
+    rangeContainer?.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            rangeContainer.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedCompareRange = btn.dataset.range;
+            renderAssetCompare();
+        });
+    });
+}
+
 /* --------------------------------- TABS ---------------------------------- */
 
 function initTabs() {
@@ -600,6 +784,11 @@ function initTabs() {
                 if (quantChartMid) quantChartMid.reflow();
                 if (quantChartOfi) quantChartOfi.reflow();
                 if (quantChartZscore) quantChartZscore.reflow();
+            }
+            if (btn.dataset.tab === 'compare') {
+                renderAssetCompare();
+                if (compareChartPerf) compareChartPerf.reflow();
+                if (compareChartVol) compareChartVol.reflow();
             }
         });
     });
@@ -637,4 +826,5 @@ document.addEventListener('DOMContentLoaded', function () {
     refreshWatchlist();
     initTabs();
     initQuantRangeButtons();
+    initCompareControls();
 });
