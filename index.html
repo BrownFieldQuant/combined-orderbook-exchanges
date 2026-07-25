@@ -525,6 +525,40 @@
         a {
             color: #c9975a;
         }
+        #quant-panel {
+            background: #11151d;
+            border: 1px solid #232838;
+            padding: 6px;
+            font-size: 10px;
+        }
+        #quant-symbol-label {
+            color: #c9975a;
+            font-weight: bold;
+        }
+        .quant-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 2px;
+            border-bottom: 1px dashed #232838;
+        }
+        .quant-row span:first-child {
+            color: #9aa4b5;
+        }
+        .quant-row span:last-child {
+            font-weight: bold;
+            font-variant-numeric: tabular-nums;
+        }
+        .quant-positive {
+            color: #3ecf8e !important;
+        }
+        .quant-negative {
+            color: #ef5350 !important;
+        }
+        #quant-note {
+            color: #6b7280;
+            font-size: 9px;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -626,6 +660,16 @@
         </div>
 
         <div id="side-col">
+            <div id="quant-panel">
+                <b>Quant Signals</b> — <span id="quant-symbol-label">-</span>
+                <div class="quant-row"><span>Mid Price</span><span id="quant-mid">-</span></div>
+                <div class="quant-row"><span>Microprice</span><span id="quant-microprice">-</span></div>
+                <div class="quant-row"><span>Spread Z-score</span><span id="quant-zscore">-</span></div>
+                <div class="quant-row"><span>Realized Vol (ann.)</span><span id="quant-vol">-</span></div>
+                <div class="quant-row"><span>Order Flow Imbalance Δ</span><span id="quant-ofi">-</span></div>
+                <div id="quant-note">Signals build up accuracy after a few fetches.</div>
+            </div>
+
             <div id="alerts-panel">
                 <b>Price Alerts</b>
                 <select id="alert-condition">
