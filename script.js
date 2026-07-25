@@ -13,16 +13,28 @@ function unselectAllExchanges() {
 }
 
 function setChartHeight() {
-	var windowHeight = window.innerHeight;
 	var chartContainer = document.getElementById('orderbookchart');
+	var sideCol = document.getElementById('side-col');
+	if (!chartContainer) return;
+	var target = sideCol ? sideCol.offsetHeight : 0;
+	var windowHeight = window.innerHeight;
 	var available = windowHeight - chartContainer.offsetTop - 10;
-	var chartHeight = Math.max(220, Math.min(available, 320));
+	var chartHeight = Math.max(260, Math.min(target || available, available));
 	chartContainer.style.height = chartHeight + 'px';
 }
 
 window.addEventListener('resize', setChartHeight);
 
 setChartHeight();
+
+// Keep the chart in sync whenever the right-hand column changes size
+// (alerts added, watchlist rows added/removed, etc), not just on window resize.
+document.addEventListener('DOMContentLoaded', function () {
+	var sideCol = document.getElementById('side-col');
+	if (sideCol && window.ResizeObserver) {
+		new ResizeObserver(function () { setChartHeight(); }).observe(sideCol);
+	}
+});
 
 document.addEventListener('DOMContentLoaded', function () {
     const exchanges = ['Binance', 'Bequant', 'Bitmart', 'MEXC', 'Bybit', 'Ascendex', 'Azbit', 'BigOne', 'BinanceUS', 'Bitbns', 'Bitdelta', 'Bitfinex', 
@@ -474,6 +486,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 series: series
             });
+            if (typeof window.attachChartWatermark === 'function') {
+                window.attachChartWatermark(chart);
+            }
 
             document.getElementById('zoom-in').addEventListener('click', function () {
                 const extremes = chart.xAxis[0].getExtremes();
