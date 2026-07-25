@@ -419,12 +419,122 @@ function updateQuantSignals(data, symbol) {
         const bidChange = book.totalBidQty - prevBookState.totalBidQty;
         const askChange = book.totalAskQty - prevBookState.totalAskQty;
         const ofi = bidChange - askChange;
+        prevOfiValue = ofi;
         const sign = ofi > 0 ? '+' : '';
         setQuantValue('quant-ofi', sign + ofi.toFixed(4), ofi > 0 ? 'quant-positive' : (ofi < 0 ? 'quant-negative' : null));
     } else {
+        prevOfiValue = 0;
         setQuantValue('quant-ofi', 'first fetch');
     }
     prevBookState = book;
+
+    // --- Track history for the Quant Analytics tab chart ---
+    const cumulativeOFI = quantHistory.length
+        ? quantHistory[quantHistory.length - 1].cofi + (prevOfiValue || 0)
+        : (prevOfiValue || 0);
+    quantHistory.push({
+        time: Date.now(),
+        mid: midPrice,
+        cofi: cumulativeOFI,
+        zscore: spreadPctBuffer.length >= 5
+            ? (spreadPct - (spreadPctBuffer.reduce((s, v) => s + v, 0) / spreadPctBuffer.length))
+            : 0
+    });
+    if (quantHistory.length > QUANT_HISTORY_MAX) quantHistory.shift();
+
+    updateQuantAnalyticsStats(symbol, midPrice, microprice);
+    renderQuantAnalyticsChart(symbol);
+}
+
+/* --------------------------- QUANT ANALYTICS TAB --------------------------- */
+
+const QUANT_HISTORY_MAX = 500;
+let quantHistory = [];
+let quantAnalyticsChart = null;
+let prevOfiValue = 0;
+
+function updateQuantAnalyticsStats(symbol, midPrice, microprice) {
+    const symLabel = document.getElementById('quant-analytics-symbol');
+    if (symLabel) symLabel.textContent = symbol;
+
+    const setStat = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    setStat('qa-mid', midPrice.toFixed(6));
+    setStat('qa-microprice', microprice.toFixed(6));
+    setStat('qa-zscore', document.getElementById('quant-zscore')?.textContent || '-');
+    setStat('qa-vol', document.getElementById('quant-vol')?.textContent || '-');
+    const lastPoint = quantHistory[quantHistory.length - 1];
+    setStat('qa-cofi', lastPoint ? lastPoint.cofi.toFixed(4) : '-');
+    setStat('qa-points', String(quantHistory.length));
+}
+
+function renderQuantAnalyticsChart(symbol) {
+    const container = document.getElementById('quant-analytics-chart');
+    if (!container || typeof Highcharts === 'undefined' || quantHistory.length === 0) return;
+
+    const midSeries = quantHistory.map(p => [p.time, p.mid]);
+    const ofiSeries = quantHistory.map(p => [p.time, p.cofi]);
+
+    const options = {
+        chart: { animation: false, backgroundColor: 'transparent' },
+        title: { text: `${symbol} — Mid Price vs Cumulative Order Flow Imbalance`, style: { fontSize: '12px', color: '#d7dde5' } },
+        xAxis: { type: 'datetime', labels: { style: { fontSize: '9px', color: '#9aa4b5' } }, lineColor: '#232838', tickColor: '#232838' },
+        yAxis: [
+            {
+                title: { text: 'Mid Price', style: { color: '#d7dde5' } },
+                labels: { style: { color: '#d7dde5' } },
+                gridLineColor: '#1c2130'
+            },
+            {
+                title: { text: 'Cumulative OFI', style: { color: '#9aa4b5' } },
+                labels: { style: { color: '#9aa4b5' } },
+                opposite: true,
+                gridLineWidth: 0
+            }
+        ],
+        tooltip: { shared: true, valueDecimals: 4 },
+        credits: { enabled: false },
+        legend: { itemStyle: { color: '#d7dde5' } },
+        plotOptions: {
+            area: {
+                marker: { enabled: false },
+                fillOpacity: 0.25,
+                negativeFillColor: 'rgba(239, 83, 80, 0.25)',
+                zones: [
+                    { value: 0, color: '#ef5350', fillColor: 'rgba(239, 83, 80, 0.25)' },
+                    { color: '#3ecf8e', fillColor: 'rgba(62, 207, 142, 0.25)' }
+                ]
+            },
+            line: { marker: { enabled: false } }
+        },
+        series: [
+            { name: 'Mid Price', type: 'line', data: midSeries, yAxis: 0, color: '#c9975a', zIndex: 2 },
+            { name: 'Cumulative OFI', type: 'area', data: ofiSeries, yAxis: 1, zIndex: 1, threshold: 0 }
+        ]
+    };
+
+    if (!quantAnalyticsChart) {
+        quantAnalyticsChart = Highcharts.chart('quant-analytics-chart', options);
+    } else {
+        quantAnalyticsChart.update(options, true, true);
+    }
+}
+
+/* --------------------------------- TABS ---------------------------------- */
+
+function initTabs() {
+    const buttons = document.querySelectorAll('.tab-btn');
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            buttons.forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+            btn.classList.add('active');
+            const target = document.getElementById('view-' + btn.dataset.tab);
+            if (target) target.classList.add('active');
+            if (btn.dataset.tab === 'quant' && quantAnalyticsChart) {
+                quantAnalyticsChart.reflow();
+            }
+        });
+    });
 }
 
 /* --------------------------------- INIT ---------------------------------- */
@@ -457,4 +567,5 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('export-log-btn')?.addEventListener('click', exportLogJSON);
 
     refreshWatchlist();
+    initTabs();
 });
