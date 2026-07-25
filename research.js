@@ -428,11 +428,12 @@ function updateQuantSignals(data, symbol) {
     }
     prevBookState = book;
 
-    // --- Track history for the Quant Analytics tab chart ---
-    const cumulativeOFI = quantHistory.length
-        ? quantHistory[quantHistory.length - 1].cofi + (prevOfiValue || 0)
+    // --- Track history for the Quant Analytics tab chart (persisted per symbol) ---
+    const history = loadQuantHistory(symbol);
+    const cumulativeOFI = history.length
+        ? history[history.length - 1].cofi + (prevOfiValue || 0)
         : (prevOfiValue || 0);
-    quantHistory.push({
+    history.push({
         time: Date.now(),
         mid: midPrice,
         cofi: cumulativeOFI,
@@ -440,20 +441,42 @@ function updateQuantSignals(data, symbol) {
             ? (spreadPct - (spreadPctBuffer.reduce((s, v) => s + v, 0) / spreadPctBuffer.length))
             : 0
     });
-    if (quantHistory.length > QUANT_HISTORY_MAX) quantHistory.shift();
+    if (history.length > QUANT_HISTORY_MAX) history.splice(0, history.length - QUANT_HISTORY_MAX);
+    saveQuantHistory(symbol, history);
 
-    updateQuantAnalyticsStats(symbol, midPrice, microprice);
+    updateQuantAnalyticsStats(symbol, midPrice, microprice, history);
     renderQuantAnalyticsChart(symbol);
 }
 
 /* --------------------------- QUANT ANALYTICS TAB --------------------------- */
 
-const QUANT_HISTORY_MAX = 500;
-let quantHistory = [];
+const QUANT_HISTORY_MAX = 5000; // persisted points per symbol (~ many hours/days of research data)
+const QUANT_HISTORY_KEY_PREFIX = 'orderbook_quant_history_';
+const QUANT_RANGES = { '15m': 15 * 60 * 1000, '1h': 60 * 60 * 1000, '4h': 4 * 60 * 60 * 1000, '1d': 24 * 60 * 60 * 1000, all: Infinity };
+let selectedQuantRange = '1h';
 let quantAnalyticsChart = null;
 let prevOfiValue = 0;
+let lastRenderedSymbol = null;
 
-function updateQuantAnalyticsStats(symbol, midPrice, microprice) {
+function loadQuantHistory(symbol) {
+    try {
+        return JSON.parse(localStorage.getItem(QUANT_HISTORY_KEY_PREFIX + symbol)) || [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveQuantHistory(symbol, history) {
+    try {
+        localStorage.setItem(QUANT_HISTORY_KEY_PREFIX + symbol, JSON.stringify(history));
+    } catch (e) {
+        // Storage full/unavailable — trim harder and retry once.
+        const trimmed = history.slice(-500);
+        try { localStorage.setItem(QUANT_HISTORY_KEY_PREFIX + symbol, JSON.stringify(trimmed)); } catch (e2) { /* give up silently */ }
+    }
+}
+
+function updateQuantAnalyticsStats(symbol, midPrice, microprice, history) {
     const symLabel = document.getElementById('quant-analytics-symbol');
     if (symLabel) symLabel.textContent = symbol;
 
@@ -462,21 +485,31 @@ function updateQuantAnalyticsStats(symbol, midPrice, microprice) {
     setStat('qa-microprice', microprice.toFixed(6));
     setStat('qa-zscore', document.getElementById('quant-zscore')?.textContent || '-');
     setStat('qa-vol', document.getElementById('quant-vol')?.textContent || '-');
-    const lastPoint = quantHistory[quantHistory.length - 1];
+    const lastPoint = history[history.length - 1];
     setStat('qa-cofi', lastPoint ? lastPoint.cofi.toFixed(4) : '-');
-    setStat('qa-points', String(quantHistory.length));
+    setStat('qa-points', String(history.length));
 }
 
 function renderQuantAnalyticsChart(symbol) {
     const container = document.getElementById('quant-analytics-chart');
-    if (!container || typeof Highcharts === 'undefined' || quantHistory.length === 0) return;
+    if (!container || typeof Highcharts === 'undefined') return;
 
-    const midSeries = quantHistory.map(p => [p.time, p.mid]);
-    const ofiSeries = quantHistory.map(p => [p.time, p.cofi]);
+    lastRenderedSymbol = symbol;
+    const fullHistory = loadQuantHistory(symbol);
+    if (fullHistory.length === 0) return;
+
+    const rangeMs = QUANT_RANGES[selectedQuantRange];
+    const cutoff = rangeMs === Infinity ? 0 : Date.now() - rangeMs;
+    const visible = fullHistory.filter(p => p.time >= cutoff);
+    const points = visible.length > 0 ? visible : fullHistory.slice(-1);
+
+    const midSeries = points.map(p => [p.time, p.mid]);
+    const ofiSeries = points.map(p => [p.time, p.cofi]);
 
     const options = {
         chart: { animation: false, backgroundColor: 'transparent' },
         title: { text: `${symbol} — Mid Price vs Cumulative Order Flow Imbalance`, style: { fontSize: '12px', color: '#d7dde5' } },
+        subtitle: { text: `Range: ${selectedQuantRange.toUpperCase()} · ${points.length} points`, style: { fontSize: '10px', color: '#6b7280' } },
         xAxis: { type: 'datetime', labels: { style: { fontSize: '9px', color: '#9aa4b5' } }, lineColor: '#232838', tickColor: '#232838' },
         yAxis: [
             {
@@ -519,6 +552,20 @@ function renderQuantAnalyticsChart(symbol) {
     }
 }
 
+function initQuantRangeButtons() {
+    const container = document.getElementById('quant-range-buttons');
+    if (!container) return;
+    container.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            container.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedQuantRange = btn.dataset.range;
+            const symbol = lastRenderedSymbol || document.querySelector('.symbol:checked')?.value;
+            if (symbol) renderQuantAnalyticsChart(symbol);
+        });
+    });
+}
+
 /* --------------------------------- TABS ---------------------------------- */
 
 function initTabs() {
@@ -530,8 +577,10 @@ function initTabs() {
             btn.classList.add('active');
             const target = document.getElementById('view-' + btn.dataset.tab);
             if (target) target.classList.add('active');
-            if (btn.dataset.tab === 'quant' && quantAnalyticsChart) {
-                quantAnalyticsChart.reflow();
+            if (btn.dataset.tab === 'quant') {
+                const symbol = document.querySelector('.symbol:checked')?.value;
+                if (symbol) renderQuantAnalyticsChart(symbol);
+                if (quantAnalyticsChart) quantAnalyticsChart.reflow();
             }
         });
     });
@@ -568,4 +617,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
     refreshWatchlist();
     initTabs();
+    initQuantRangeButtons();
 });
