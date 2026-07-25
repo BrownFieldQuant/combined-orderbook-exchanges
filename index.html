@@ -327,10 +327,22 @@
             margin-top: 4px;
             font-weight: bold;
         }
+        #watchlist-table-scroll {
+            max-height: 260px;
+            overflow-y: auto;
+            margin-top: 4px;
+            border: 1px solid #232838;
+            border-radius: 4px;
+        }
         #watchlist-table {
             border-collapse: collapse;
             width: 100%;
-            margin-top: 4px;
+            margin-top: 0;
+        }
+        #watchlist-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
         #watchlist-table th, #watchlist-table td {
             border: 1px solid #ddd;
@@ -918,10 +930,12 @@
                 <input type="text" id="watch-symbol-input" placeholder="e.g. ETHUSDT">
                 <button id="watch-add-btn">Add to Watchlist</button>
                 <button id="watch-refresh-btn">Refresh Watchlist</button>
-                <table id="watchlist-table">
-                    <thead><tr><th>Symbol</th><th>Best Bid</th><th>Best Ask</th><th>Spread %</th><th></th></tr></thead>
-                    <tbody></tbody>
-                </table>
+                <div id="watchlist-table-scroll">
+                    <table id="watchlist-table">
+                        <thead><tr><th>Symbol</th><th>Best Bid</th><th>Best Ask</th><th>Spread %</th><th></th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
 
             <div id="slippage-panel">
