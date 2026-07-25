@@ -211,22 +211,33 @@
             margin-top: 0;
         }
         #dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            display: flex;
+            align-items: flex-start;
             gap: 8px;
             margin-top: 8px;
-            align-items: start;
-        }
-        #dashboard-grid > div {
-            margin-top: 0;
-            min-width: 0;
+            width: 100%;
         }
         #comparison-panel {
-            grid-column: 1 / -1;
+            margin-top: 8px;
+            width: 100%;
+        }
+        #dashboard-left-col {
+            flex: 1 1 50%;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        #ladder-panel {
+            flex: 1 1 50%;
+            min-width: 0;
         }
         @media (max-width: 1000px) {
             #dashboard-grid {
-                grid-template-columns: 1fr;
+                flex-direction: column;
+            }
+            #dashboard-left-col, #ladder-panel {
+                width: 100%;
             }
         }
         @media (max-width: 900px) {
@@ -628,6 +639,17 @@
                 <ul id="alert-list"></ul>
             </div>
 
+            <div id="watchlist-panel">
+                <b>Multi-Symbol Watchlist</b> (uses currently selected exchanges)
+                <input type="text" id="watch-symbol-input" placeholder="e.g. ETHUSDT">
+                <button id="watch-add-btn">Add to Watchlist</button>
+                <button id="watch-refresh-btn">Refresh Watchlist</button>
+                <table id="watchlist-table">
+                    <thead><tr><th>Symbol</th><th>Best Bid</th><th>Best Ask</th><th>Spread %</th><th></th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
             <div id="slippage-panel">
                 <b>Slippage Calculator</b>
                 <select id="slippage-side">
@@ -650,48 +672,39 @@
         </div>
     </div>
 
-    <div id="dashboard-grid">
-        <div id="comparison-panel">
-            <b>Exchange Price Comparison</b>
-            <table id="comparison-table">
-                <thead>
-                    <tr><th>Exchange</th><th>Best Bid</th><th>Best Ask</th><th>Spread</th><th>Spread %</th><th>Bid VWAP</th><th>Ask VWAP</th><th>Imbalance</th></tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-            <div id="arbitrage-info"></div>
-            <div id="agg-imbalance-container">
-                <span>Aggregate Imbalance (Bids vs Asks):</span>
-                <div id="agg-imbalance-bar"><div id="agg-imbalance-fill"></div></div>
-                <span id="agg-imbalance-label">0% / 0%</span>
-            </div>
+    <div id="comparison-panel">
+        <b>Exchange Price Comparison</b>
+        <table id="comparison-table">
+            <thead>
+                <tr><th>Exchange</th><th>Best Bid</th><th>Best Ask</th><th>Spread</th><th>Spread %</th><th>Bid VWAP</th><th>Ask VWAP</th><th>Imbalance</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div id="arbitrage-info"></div>
+        <div id="agg-imbalance-container">
+            <span>Aggregate Imbalance (Bids vs Asks):</span>
+            <div id="agg-imbalance-bar"><div id="agg-imbalance-fill"></div></div>
+            <span id="agg-imbalance-label">0% / 0%</span>
         </div>
+    </div>
 
-        <div id="depth-panel">
-            <b>Cumulative Depth Chart</b>
-            <div id="depthchart"></div>
+    <div id="dashboard-grid">
+        <div id="dashboard-left-col">
+            <div id="depth-panel">
+                <b>Cumulative Depth Chart</b>
+                <div id="depthchart"></div>
+            </div>
+
+            <div id="history-panel">
+                <b>Spread History</b>
+                <label><input type="checkbox" id="history-record-toggle"> Record snapshots on each fetch</label>
+                <div id="spreadhistorychart"></div>
+            </div>
         </div>
 
         <div id="ladder-panel">
             <b>Order Book Heatmap (Price Ladder)</b>
             <div id="ladder-container"></div>
-        </div>
-
-        <div id="history-panel">
-            <b>Spread History</b>
-            <label><input type="checkbox" id="history-record-toggle"> Record snapshots on each fetch</label>
-            <div id="spreadhistorychart"></div>
-        </div>
-
-        <div id="watchlist-panel">
-            <b>Multi-Symbol Watchlist</b> (uses currently selected exchanges)
-            <input type="text" id="watch-symbol-input" placeholder="e.g. ETHUSDT">
-            <button id="watch-add-btn">Add to Watchlist</button>
-            <button id="watch-refresh-btn">Refresh Watchlist</button>
-            <table id="watchlist-table">
-                <thead><tr><th>Symbol</th><th>Best Bid</th><th>Best Ask</th><th>Spread %</th><th></th></tr></thead>
-                <tbody></tbody>
-            </table>
         </div>
     </div>
 
