@@ -328,12 +328,112 @@ function buildPriceLadder(data, symbol) {
     container.innerHTML = html;
 }
 
+/* ------------------------------ QUANT SIGNALS ------------------------------ */
+
+const QUANT_BUFFER_SIZE = 30;
+let midPriceBuffer = [];   // recent mid prices, in-memory only (resets on reload)
+let spreadPctBuffer = [];  // recent spread %, for z-score
+let prevBookState = null;  // { bidQty, askQty } from the previous fetch, for OFI
+
+function computeAggregateBook(data) {
+    let bestBid = -Infinity, bestAsk = Infinity;
+    let bestBidQty = 0, bestAskQty = 0;
+    let totalBidQty = 0, totalAskQty = 0;
+
+    data.forEach(({ bids, asks }) => {
+        bids.forEach(([p, q]) => {
+            totalBidQty += q;
+            if (p > bestBid) { bestBid = p; bestBidQty = q; }
+            else if (p === bestBid) { bestBidQty += q; }
+        });
+        asks.forEach(([p, q]) => {
+            totalAskQty += q;
+            if (p < bestAsk) { bestAsk = p; bestAskQty = q; }
+            else if (p === bestAsk) { bestAskQty += q; }
+        });
+    });
+
+    return { bestBid, bestAsk, bestBidQty, bestAskQty, totalBidQty, totalAskQty };
+}
+
+function setQuantValue(id, text, cls) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove('quant-positive', 'quant-negative');
+    if (cls) el.classList.add(cls);
+}
+
+function updateQuantSignals(data, symbol) {
+    const labelEl = document.getElementById('quant-symbol-label');
+    if (labelEl) labelEl.textContent = symbol;
+
+    const book = computeAggregateBook(data);
+    if (!isFinite(book.bestBid) || !isFinite(book.bestAsk)) return;
+
+    const midPrice = (book.bestBid + book.bestAsk) / 2;
+    // Microprice: weighted toward the side with less resting size (i.e. weighted
+    // by the OPPOSITE side's quantity), a standard short-term fair-value estimate.
+    const microprice = (book.bestBid * book.bestAskQty + book.bestAsk * book.bestBidQty)
+        / (book.bestBidQty + book.bestAskQty || 1);
+    const spreadPct = (book.bestAsk - book.bestBid) / book.bestBid * 100;
+
+    setQuantValue('quant-mid', midPrice.toFixed(6));
+    const microDelta = microprice - midPrice;
+    setQuantValue('quant-microprice', microprice.toFixed(6), microDelta > 0 ? 'quant-positive' : (microDelta < 0 ? 'quant-negative' : null));
+
+    // --- Spread Z-score (mean reversion signal) ---
+    spreadPctBuffer.push(spreadPct);
+    if (spreadPctBuffer.length > QUANT_BUFFER_SIZE) spreadPctBuffer.shift();
+    if (spreadPctBuffer.length >= 5) {
+        const mean = spreadPctBuffer.reduce((s, v) => s + v, 0) / spreadPctBuffer.length;
+        const variance = spreadPctBuffer.reduce((s, v) => s + (v - mean) ** 2, 0) / spreadPctBuffer.length;
+        const stdDev = Math.sqrt(variance);
+        const z = stdDev > 0 ? (spreadPct - mean) / stdDev : 0;
+        setQuantValue('quant-zscore', z.toFixed(2) + 'σ', z > 1 ? 'quant-negative' : (z < -1 ? 'quant-positive' : null));
+    } else {
+        setQuantValue('quant-zscore', 'warming up...');
+    }
+
+    // --- Realized volatility (annualized %, from log returns of mid price) ---
+    midPriceBuffer.push(midPrice);
+    if (midPriceBuffer.length > QUANT_BUFFER_SIZE) midPriceBuffer.shift();
+    if (midPriceBuffer.length >= 5) {
+        const returns = [];
+        for (let i = 1; i < midPriceBuffer.length; i++) {
+            returns.push(Math.log(midPriceBuffer[i] / midPriceBuffer[i - 1]));
+        }
+        const meanRet = returns.reduce((s, v) => s + v, 0) / returns.length;
+        const variance = returns.reduce((s, v) => s + (v - meanRet) ** 2, 0) / returns.length;
+        const stdDev = Math.sqrt(variance);
+        // Rough annualization assuming ~1 fetch per refresh cycle; treated as a
+        // relative/comparative volatility gauge rather than a precise figure.
+        const annualizedPct = stdDev * Math.sqrt(365 * 24 * 12) * 100;
+        setQuantValue('quant-vol', annualizedPct.toFixed(2) + '%');
+    } else {
+        setQuantValue('quant-vol', 'warming up...');
+    }
+
+    // --- Order Flow Imbalance delta vs previous fetch ---
+    if (prevBookState) {
+        const bidChange = book.totalBidQty - prevBookState.totalBidQty;
+        const askChange = book.totalAskQty - prevBookState.totalAskQty;
+        const ofi = bidChange - askChange;
+        const sign = ofi > 0 ? '+' : '';
+        setQuantValue('quant-ofi', sign + ofi.toFixed(4), ofi > 0 ? 'quant-positive' : (ofi < 0 ? 'quant-negative' : null));
+    } else {
+        setQuantValue('quant-ofi', 'first fetch');
+    }
+    prevBookState = book;
+}
+
 /* --------------------------------- INIT ---------------------------------- */
 
 // Central hook: script.js calls this after every successful fetchData().
 window.onOrderbookFetched = function (data, symbol) {
     buildDepthChart(data, symbol);
     buildPriceLadder(data, symbol);
+    updateQuantSignals(data, symbol);
 
     if (document.getElementById('history-record-toggle')?.checked) {
         recordSpreadPoint(data, symbol);
