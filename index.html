@@ -559,6 +559,64 @@
             font-size: 9px;
             margin-top: 4px;
         }
+        #tab-bar {
+            display: flex;
+            justify-content: flex-end;
+            gap: 4px;
+            margin-bottom: 8px;
+        }
+        .tab-btn {
+            background: #11151d;
+            color: #9aa4b5;
+            border: 1px solid #232838;
+            border-radius: 4px 4px 0 0;
+            padding: 6px 16px;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+        .tab-btn:hover {
+            background: #1a1f2b;
+            color: #d7dde5;
+        }
+        .tab-btn.active {
+            background: #1a1f2b;
+            color: #c9975a;
+            border-bottom: 2px solid #c9975a;
+        }
+        .tab-view {
+            display: none;
+        }
+        .tab-view.active {
+            display: block;
+        }
+        #quant-analytics-panel {
+            background: #11151d;
+            border: 1px solid #232838;
+            border-radius: 6px;
+            padding: 8px;
+        }
+        #quant-analytics-chart {
+            width: 100%;
+            height: 420px;
+            margin-top: 6px;
+        }
+        #quant-analytics-note {
+            color: #6b7280;
+            font-size: 9px;
+            margin-top: 6px;
+        }
+        #quant-analytics-grid {
+            margin-top: 8px;
+        }
+        #quant-analytics-stat-panel {
+            background: #11151d;
+            border: 1px solid #232838;
+            border-radius: 6px;
+            padding: 8px;
+            max-width: 420px;
+            font-size: 11px;
+        }
     </style>
 </head>
 <body>
@@ -570,6 +628,10 @@
         <div id="loading-bar-track"><div id="loading-bar-fill"></div></div>
     </div>
     <div id="app-content">
+    <div id="tab-bar">
+        <button class="tab-btn active" data-tab="orderbook">Order Book</button>
+        <button class="tab-btn" data-tab="quant">Quant Analytics</button>
+    </div>
     <div id="controls">
         <div id="dropdown" class="dropdown">
             <button>Exchanges</button>
@@ -653,6 +715,7 @@
             <div id="total-info">Asks: 0.00% Bids: 0.00%</div>    
         </div>  
     </div>  
+    <div id="view-orderbook" class="tab-view active">
     <div id="main-dashboard">
         <div id="chart-col">
             <div id="orderbookchart"></div>
@@ -749,6 +812,26 @@
         <div id="ladder-panel">
             <b>Order Book Heatmap (Price Ladder)</b>
             <div id="ladder-container"></div>
+        </div>
+    </div>
+    </div>
+
+    <div id="view-quant" class="tab-view">
+        <div id="quant-analytics-panel">
+            <b>Price &amp; Order Flow Imbalance — <span id="quant-analytics-symbol">-</span></b>
+            <div id="quant-analytics-chart"></div>
+            <div id="quant-analytics-note">Tracks mid price against cumulative order-flow imbalance since this tab started recording. Keep fetching (or enable Auto Refresh) on the Order Book tab to build up history.</div>
+        </div>
+        <div id="quant-analytics-grid">
+            <div id="quant-analytics-stat-panel">
+                <b>Current Signals</b>
+                <div class="quant-row"><span>Mid Price</span><span id="qa-mid">-</span></div>
+                <div class="quant-row"><span>Microprice</span><span id="qa-microprice">-</span></div>
+                <div class="quant-row"><span>Spread Z-score</span><span id="qa-zscore">-</span></div>
+                <div class="quant-row"><span>Realized Vol (ann.)</span><span id="qa-vol">-</span></div>
+                <div class="quant-row"><span>Cumulative OFI</span><span id="qa-cofi">-</span></div>
+                <div class="quant-row"><span>Data Points Collected</span><span id="qa-points">0</span></div>
+            </div>
         </div>
     </div>
 
