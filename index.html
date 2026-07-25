@@ -687,6 +687,102 @@
                 height: 260px;
             }
         }
+        #compare-header-bar {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            background: #11151d;
+            border: 1px solid #232838;
+            border-radius: 6px;
+            padding: 8px;
+        }
+        #compare-symbol-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex: 1 1 auto;
+        }
+        #compare-symbol-list label {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 10px;
+            color: #d7dde5;
+            background: #171b26;
+            border: 1px solid #232838;
+            border-radius: 3px;
+            padding: 3px 8px;
+        }
+        #compare-range-buttons {
+            display: flex;
+            gap: 4px;
+        }
+        #compare-range-buttons button {
+            background: #11151d;
+            color: #9aa4b5;
+            border: 1px solid #232838;
+            border-radius: 3px;
+            padding: 3px 10px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        #compare-range-buttons button:hover {
+            border-color: #c9975a;
+            color: #d7dde5;
+        }
+        #compare-range-buttons button.active {
+            background: #1a1f2b;
+            color: #c9975a;
+            border-color: #c9975a;
+        }
+        #compare-note {
+            color: #6b7280;
+            font-size: 9px;
+            margin: 6px 0;
+        }
+        #compare-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            height: 380px;
+        }
+        #compare-perf-chart, #compare-vol-chart {
+            flex: 1;
+            min-height: 0;
+        }
+        @media (max-width: 1000px) {
+            #compare-grid {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            #compare-perf-chart, #compare-vol-chart {
+                height: 260px;
+            }
+        }
+        #compare-corr-panel {
+            background: #11151d;
+            border: 1px solid #232838;
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 8px;
+            overflow-x: auto;
+        }
+        #compare-corr-table {
+            border-collapse: collapse;
+            margin-top: 6px;
+            font-size: 10px;
+        }
+        #compare-corr-table th, #compare-corr-table td {
+            border: 1px solid #232838;
+            padding: 4px 8px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        #compare-corr-table th {
+            background: #171b26;
+            color: #c9975a;
+        }
     </style>
 </head>
 <body>
@@ -701,6 +797,7 @@
     <div id="tab-bar">
         <button class="tab-btn active" data-tab="orderbook">Order Book</button>
         <button class="tab-btn" data-tab="quant">Quant Analytics</button>
+        <button class="tab-btn" data-tab="compare">Asset Compare</button>
     </div>
     <div id="controls">
         <div id="dropdown" class="dropdown">
@@ -926,6 +1023,42 @@
                     <div class="quant-row"><span>Cumulative OFI</span><span id="qa-cofi">-</span></div>
                     <div class="quant-row"><span>Data Points Collected</span><span id="qa-points">0</span></div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-compare" class="tab-view">
+        <div id="compare-header-bar">
+            <b>Asset Compare</b>
+            <div id="compare-symbol-list"></div>
+            <button id="compare-refresh-btn">Refresh Comparison</button>
+            <div id="compare-range-buttons">
+                <button data-range="15m">15m</button>
+                <button data-range="1h" class="active">1h</button>
+                <button data-range="4h">4h</button>
+                <button data-range="1d">1D</button>
+                <button data-range="all">All</button>
+            </div>
+        </div>
+        <div id="compare-note">Symbols come from your Multi-Symbol Watchlist (Order Book tab) plus the currently selected main symbol. Each needs a bit of collected history (fetch/refresh a few times) before it's useful to compare.</div>
+
+        <div id="compare-grid">
+            <div class="quant-cell" id="compare-perf-cell">
+                <div class="quant-cell-title">Relative Performance (rebased to 100)</div>
+                <div class="quant-cell-watermark">Lowcost Research</div>
+                <div id="compare-perf-chart" class="quant-cell-chart"></div>
+            </div>
+            <div class="quant-cell" id="compare-vol-cell">
+                <div class="quant-cell-title">Volatility Comparison (annualized)</div>
+                <div class="quant-cell-watermark">Lowcost Research</div>
+                <div id="compare-vol-chart" class="quant-cell-chart"></div>
+            </div>
+        </div>
+
+        <div id="compare-corr-panel">
+            <b>Return Correlation Matrix</b>
+            <div id="compare-corr-table-wrap">
+                <table id="compare-corr-table"><tbody></tbody></table>
             </div>
         </div>
     </div>
