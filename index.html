@@ -179,7 +179,7 @@
         }
         #main-dashboard {
             display: flex;
-            align-items: flex-start;
+            align-items: stretch;
             gap: 8px;
             width: 100%;
         }
@@ -189,14 +189,11 @@
         }
         #chart-col #orderbookchart {
             width: 100%;
+            height: 100%;
         }
-        #chart-credit {
-            text-align: center;
-            font-size: 11px;
-            font-weight: bold;
-            letter-spacing: 1px;
-            color: #8a5a2a;
-            margin-top: 4px;
+        #chart-col {
+            display: flex;
+            flex-direction: column;
         }
         #side-col {
             flex: 1 1 320px;
@@ -527,9 +524,6 @@
         }
         .bid-row .ladder-bar {
             background: rgba(62, 207, 142, 0.22);
-        }
-        #chart-credit {
-            color: #c9975a;
         }
         #total-info {
             color: #d7dde5;
@@ -939,7 +933,6 @@
     <div id="main-dashboard">
         <div id="chart-col">
             <div id="orderbookchart"></div>
-            <div id="chart-credit">Lowcost Research</div>
         </div>
 
         <div id="side-col">
