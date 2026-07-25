@@ -454,7 +454,6 @@ const QUANT_HISTORY_MAX = 5000; // persisted points per symbol (~ many hours/day
 const QUANT_HISTORY_KEY_PREFIX = 'orderbook_quant_history_';
 const QUANT_RANGES = { '15m': 15 * 60 * 1000, '1h': 60 * 60 * 1000, '4h': 4 * 60 * 60 * 1000, '1d': 24 * 60 * 60 * 1000, all: Infinity };
 let selectedQuantRange = '1h';
-let quantAnalyticsChart = null;
 let prevOfiValue = 0;
 let lastRenderedSymbol = null;
 
@@ -490,9 +489,23 @@ function updateQuantAnalyticsStats(symbol, midPrice, microprice, history) {
     setStat('qa-points', String(history.length));
 }
 
+let quantChartMid = null;
+let quantChartOfi = null;
+let quantChartZscore = null;
+
+function baseQuantChartOptions() {
+    return {
+        chart: { animation: false, backgroundColor: 'transparent' },
+        title: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: { type: 'datetime', labels: { style: { fontSize: '8px', color: '#9aa4b5' } }, lineColor: '#232838', tickColor: '#232838' },
+        tooltip: { valueDecimals: 4 }
+    };
+}
+
 function renderQuantAnalyticsChart(symbol) {
-    const container = document.getElementById('quant-analytics-chart');
-    if (!container || typeof Highcharts === 'undefined') return;
+    if (typeof Highcharts === 'undefined') return;
 
     lastRenderedSymbol = symbol;
     const fullHistory = loadQuantHistory(symbol);
@@ -505,51 +518,55 @@ function renderQuantAnalyticsChart(symbol) {
 
     const midSeries = points.map(p => [p.time, p.mid]);
     const ofiSeries = points.map(p => [p.time, p.cofi]);
+    const zSeries = points.map(p => [p.time, p.zscore]);
 
-    const options = {
-        chart: { animation: false, backgroundColor: 'transparent' },
-        title: { text: `${symbol} — Mid Price vs Cumulative Order Flow Imbalance`, style: { fontSize: '12px', color: '#d7dde5' } },
-        subtitle: { text: `Range: ${selectedQuantRange.toUpperCase()} · ${points.length} points`, style: { fontSize: '10px', color: '#6b7280' } },
-        xAxis: { type: 'datetime', labels: { style: { fontSize: '9px', color: '#9aa4b5' } }, lineColor: '#232838', tickColor: '#232838' },
-        yAxis: [
-            {
-                title: { text: 'Mid Price', style: { color: '#d7dde5' } },
-                labels: { style: { color: '#d7dde5' } },
-                gridLineColor: '#1c2130'
-            },
-            {
-                title: { text: 'Cumulative OFI', style: { color: '#9aa4b5' } },
-                labels: { style: { color: '#9aa4b5' } },
-                opposite: true,
-                gridLineWidth: 0
-            }
-        ],
-        tooltip: { shared: true, valueDecimals: 4 },
-        credits: { enabled: false },
-        legend: { itemStyle: { color: '#d7dde5' } },
+    const subtitleText = `${symbol} · ${selectedQuantRange.toUpperCase()} · ${points.length} pts`;
+
+    // --- Mid Price ---
+    const midOptions = Object.assign(baseQuantChartOptions(), {
+        subtitle: { text: subtitleText, style: { fontSize: '9px', color: '#6b7280' } },
+        yAxis: { title: { text: null }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130' },
+        series: [{ name: 'Mid Price', type: 'line', data: midSeries, color: '#c9975a', marker: { enabled: false } }]
+    });
+    if (!quantChartMid) quantChartMid = Highcharts.chart('qa-chart-mid', midOptions);
+    else quantChartMid.update(midOptions, true, true);
+
+    // --- Cumulative OFI ---
+    const ofiOptions = Object.assign(baseQuantChartOptions(), {
+        subtitle: { text: subtitleText, style: { fontSize: '9px', color: '#6b7280' } },
+        yAxis: { title: { text: null }, labels: { style: { fontSize: '9px', color: '#9aa4b5' } }, gridLineColor: '#1c2130' },
         plotOptions: {
             area: {
                 marker: { enabled: false },
                 fillOpacity: 0.25,
-                negativeFillColor: 'rgba(239, 83, 80, 0.25)',
+                threshold: 0,
                 zones: [
                     { value: 0, color: '#ef5350', fillColor: 'rgba(239, 83, 80, 0.25)' },
                     { color: '#3ecf8e', fillColor: 'rgba(62, 207, 142, 0.25)' }
                 ]
-            },
-            line: { marker: { enabled: false } }
+            }
         },
-        series: [
-            { name: 'Mid Price', type: 'line', data: midSeries, yAxis: 0, color: '#c9975a', zIndex: 2 },
-            { name: 'Cumulative OFI', type: 'area', data: ofiSeries, yAxis: 1, zIndex: 1, threshold: 0 }
-        ]
-    };
+        series: [{ name: 'Cumulative OFI', type: 'area', data: ofiSeries }]
+    });
+    if (!quantChartOfi) quantChartOfi = Highcharts.chart('qa-chart-ofi', ofiOptions);
+    else quantChartOfi.update(ofiOptions, true, true);
 
-    if (!quantAnalyticsChart) {
-        quantAnalyticsChart = Highcharts.chart('quant-analytics-chart', options);
-    } else {
-        quantAnalyticsChart.update(options, true, true);
-    }
+    // --- Spread Z-score ---
+    const zOptions = Object.assign(baseQuantChartOptions(), {
+        subtitle: { text: subtitleText, style: { fontSize: '9px', color: '#6b7280' } },
+        yAxis: {
+            title: { text: null },
+            labels: { style: { fontSize: '9px', color: '#9aa4b5' } },
+            gridLineColor: '#1c2130',
+            plotLines: [
+                { value: 1, color: 'rgba(239, 83, 80, 0.5)', dashStyle: 'Dash', width: 1 },
+                { value: -1, color: 'rgba(62, 207, 142, 0.5)', dashStyle: 'Dash', width: 1 }
+            ]
+        },
+        series: [{ name: 'Spread Z-score', type: 'line', data: zSeries, color: '#5aa9e6', marker: { enabled: false } }]
+    });
+    if (!quantChartZscore) quantChartZscore = Highcharts.chart('qa-chart-zscore', zOptions);
+    else quantChartZscore.update(zOptions, true, true);
 }
 
 function initQuantRangeButtons() {
@@ -580,7 +597,9 @@ function initTabs() {
             if (btn.dataset.tab === 'quant') {
                 const symbol = document.querySelector('.symbol:checked')?.value;
                 if (symbol) renderQuantAnalyticsChart(symbol);
-                if (quantAnalyticsChart) quantAnalyticsChart.reflow();
+                if (quantChartMid) quantChartMid.reflow();
+                if (quantChartOfi) quantChartOfi.reflow();
+                if (quantChartZscore) quantChartZscore.reflow();
             }
         });
     });
