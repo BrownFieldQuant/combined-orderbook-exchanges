@@ -590,26 +590,23 @@
         .tab-view.active {
             display: block;
         }
-        #quant-analytics-panel {
+        #quant-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             background: #11151d;
             border: 1px solid #232838;
             border-radius: 6px;
             padding: 8px;
         }
-        #quant-analytics-chart {
-            width: 100%;
-            height: 420px;
-            margin-top: 6px;
-        }
         #quant-analytics-note {
             color: #6b7280;
             font-size: 9px;
-            margin-top: 6px;
+            margin: 6px 0;
         }
         #quant-range-buttons {
             display: flex;
             gap: 4px;
-            margin: 6px 0;
         }
         #quant-range-buttons button {
             background: #11151d;
@@ -629,16 +626,66 @@
             color: #c9975a;
             border-color: #c9975a;
         }
-        #quant-analytics-grid {
-            margin-top: 8px;
+        #quant-quad-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 8px;
+            height: calc(100vh - 260px);
+            min-height: 560px;
         }
-        #quant-analytics-stat-panel {
+        .quant-cell {
+            position: relative;
             background: #11151d;
             border: 1px solid #232838;
             border-radius: 6px;
             padding: 8px;
-            max-width: 420px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .quant-cell-title {
+            color: #c9975a;
             font-size: 11px;
+            font-weight: bold;
+            z-index: 2;
+            position: relative;
+        }
+        .quant-cell-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-18deg);
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: 3px;
+            color: rgba(201, 151, 90, 0.06);
+            white-space: nowrap;
+            z-index: 0;
+            pointer-events: none;
+            user-select: none;
+        }
+        .quant-cell-chart {
+            flex: 1;
+            min-height: 0;
+            z-index: 1;
+            position: relative;
+        }
+        #quant-analytics-stat-panel {
+            z-index: 1;
+            position: relative;
+            font-size: 11px;
+            overflow-y: auto;
+        }
+        @media (max-width: 1000px) {
+            #quant-quad-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: none;
+                height: auto;
+            }
+            .quant-cell-chart {
+                height: 260px;
+            }
         }
     </style>
 </head>
@@ -840,8 +887,8 @@
     </div>
 
     <div id="view-quant" class="tab-view">
-        <div id="quant-analytics-panel">
-            <b>Price &amp; Order Flow Imbalance — <span id="quant-analytics-symbol">-</span></b>
+        <div id="quant-header-bar">
+            <b>Quant Analytics — <span id="quant-analytics-symbol">-</span></b>
             <div id="quant-range-buttons">
                 <button data-range="15m">15m</button>
                 <button data-range="1h" class="active">1h</button>
@@ -849,18 +896,36 @@
                 <button data-range="1d">1D</button>
                 <button data-range="all">All</button>
             </div>
-            <div id="quant-analytics-chart"></div>
-            <div id="quant-analytics-note">Each fetch on the Order Book tab saves a data point to this browser (per symbol, persists across reloads — up to 5000 points). Use the range buttons above to inspect a specific research window instead of only the live edge.</div>
         </div>
-        <div id="quant-analytics-grid">
-            <div id="quant-analytics-stat-panel">
-                <b>Current Signals</b>
-                <div class="quant-row"><span>Mid Price</span><span id="qa-mid">-</span></div>
-                <div class="quant-row"><span>Microprice</span><span id="qa-microprice">-</span></div>
-                <div class="quant-row"><span>Spread Z-score</span><span id="qa-zscore">-</span></div>
-                <div class="quant-row"><span>Realized Vol (ann.)</span><span id="qa-vol">-</span></div>
-                <div class="quant-row"><span>Cumulative OFI</span><span id="qa-cofi">-</span></div>
-                <div class="quant-row"><span>Data Points Collected</span><span id="qa-points">0</span></div>
+        <div id="quant-analytics-note">Each fetch on the Order Book tab saves a data point to this browser (per symbol, persists across reloads — up to 5000 points). Use the range buttons above to inspect a specific research window instead of only the live edge.</div>
+
+        <div id="quant-quad-grid">
+            <div class="quant-cell">
+                <div class="quant-cell-title">Mid Price</div>
+                <div class="quant-cell-watermark">Lowcost Research</div>
+                <div id="qa-chart-mid" class="quant-cell-chart"></div>
+            </div>
+            <div class="quant-cell">
+                <div class="quant-cell-title">Cumulative Order Flow Imbalance</div>
+                <div class="quant-cell-watermark">Lowcost Research</div>
+                <div id="qa-chart-ofi" class="quant-cell-chart"></div>
+            </div>
+            <div class="quant-cell">
+                <div class="quant-cell-title">Spread Z-score</div>
+                <div class="quant-cell-watermark">Lowcost Research</div>
+                <div id="qa-chart-zscore" class="quant-cell-chart"></div>
+            </div>
+            <div class="quant-cell">
+                <div class="quant-cell-title">Current Signals</div>
+                <div class="quant-cell-watermark">Lowcost Research</div>
+                <div id="quant-analytics-stat-panel">
+                    <div class="quant-row"><span>Mid Price</span><span id="qa-mid">-</span></div>
+                    <div class="quant-row"><span>Microprice</span><span id="qa-microprice">-</span></div>
+                    <div class="quant-row"><span>Spread Z-score</span><span id="qa-zscore">-</span></div>
+                    <div class="quant-row"><span>Realized Vol (ann.)</span><span id="qa-vol">-</span></div>
+                    <div class="quant-row"><span>Cumulative OFI</span><span id="qa-cofi">-</span></div>
+                    <div class="quant-row"><span>Data Points Collected</span><span id="qa-points">0</span></div>
+                </div>
             </div>
         </div>
     </div>
