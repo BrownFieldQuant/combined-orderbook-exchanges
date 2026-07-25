@@ -104,11 +104,20 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     document.getElementById('fetch-data').addEventListener('click', fetchData);
+    function getRefreshIntervalMs() {
+        return parseInt(document.getElementById('auto-refresh-interval')?.value || '10000');
+    }
     document.getElementById('auto-refresh').addEventListener('change', function () {
         if (this.checked) {
-            autoRefreshInterval = setInterval(fetchData, 10000);
+            autoRefreshInterval = setInterval(fetchData, getRefreshIntervalMs());
         } else {
             clearInterval(autoRefreshInterval);
+        }
+    });
+    document.getElementById('auto-refresh-interval')?.addEventListener('change', function () {
+        if (document.getElementById('auto-refresh').checked) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = setInterval(fetchData, getRefreshIntervalMs());
         }
     });
 
@@ -149,17 +158,28 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const data = [];
-        let totalAsks = 0;
-        let totalBids = 0;
 
         for (const exchange of selectedExchanges) {
             let exchangeData = await fetchExchangeData(exchange, selectedSymbol, selectedSliceSize);
             if (exchangeData) {
                 data.push(exchangeData);
-                totalAsks += exchangeData.asks.reduce((sum, ask) => sum + ask[1], 0);
-                totalBids += exchangeData.bids.reduce((sum, bid) => sum + bid[1], 0);
             }
         }
+
+        renderData(data, selectedExchanges, selectedSymbol);
+    }
+
+    // Shared render path: builds the total-info line, updates the chart, and
+    // fires all the downstream hooks (comparison table, alerts, quant, etc).
+    // Also called by the optional Binance WebSocket live feed so a live tick
+    // renders through the exact same pipeline as a normal REST fetch.
+    function renderData(data, selectedExchanges, selectedSymbol) {
+        let totalAsks = 0;
+        let totalBids = 0;
+        data.forEach(exchangeData => {
+            totalAsks += exchangeData.asks.reduce((sum, ask) => sum + ask[1], 0);
+            totalBids += exchangeData.bids.reduce((sum, bid) => sum + bid[1], 0);
+        });
 
         const totalVolume = totalAsks + totalBids;
         const asksPercentage = (totalAsks / totalVolume) * 100;
@@ -189,6 +209,7 @@ document.addEventListener('DOMContentLoaded', function () {
             previousDataHash = dataHash;
         }
     }
+    window.__orderbookInternals.renderData = renderData;
 
     async function fetchExchangeData(exchange, symbol, sliceSize) {
         const formattedSymbol = symbolMappings[exchange](symbol);
