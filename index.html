@@ -606,6 +606,29 @@
             font-size: 9px;
             margin-top: 6px;
         }
+        #quant-range-buttons {
+            display: flex;
+            gap: 4px;
+            margin: 6px 0;
+        }
+        #quant-range-buttons button {
+            background: #11151d;
+            color: #9aa4b5;
+            border: 1px solid #232838;
+            border-radius: 3px;
+            padding: 3px 10px;
+            font-size: 10px;
+            cursor: pointer;
+        }
+        #quant-range-buttons button:hover {
+            border-color: #c9975a;
+            color: #d7dde5;
+        }
+        #quant-range-buttons button.active {
+            background: #1a1f2b;
+            color: #c9975a;
+            border-color: #c9975a;
+        }
         #quant-analytics-grid {
             margin-top: 8px;
         }
@@ -819,8 +842,15 @@
     <div id="view-quant" class="tab-view">
         <div id="quant-analytics-panel">
             <b>Price &amp; Order Flow Imbalance — <span id="quant-analytics-symbol">-</span></b>
+            <div id="quant-range-buttons">
+                <button data-range="15m">15m</button>
+                <button data-range="1h" class="active">1h</button>
+                <button data-range="4h">4h</button>
+                <button data-range="1d">1D</button>
+                <button data-range="all">All</button>
+            </div>
             <div id="quant-analytics-chart"></div>
-            <div id="quant-analytics-note">Tracks mid price against cumulative order-flow imbalance since this tab started recording. Keep fetching (or enable Auto Refresh) on the Order Book tab to build up history.</div>
+            <div id="quant-analytics-note">Each fetch on the Order Book tab saves a data point to this browser (per symbol, persists across reloads — up to 5000 points). Use the range buttons above to inspect a specific research window instead of only the live edge.</div>
         </div>
         <div id="quant-analytics-grid">
             <div id="quant-analytics-stat-panel">
