@@ -17,6 +17,36 @@ let depthChart = null;
 let spreadChart = null;
 let fetchLog = [];
 
+// Draws "Lowcost Research" INSIDE the chart's own SVG (not an HTML overlay),
+// so it's preserved when the person uses Highcharts' built-in "View in full
+// screen" or "Download PNG/JPEG/SVG" export — those only capture the chart's
+// own rendered output, not surrounding page HTML.
+function attachChartWatermark(chart) {
+    if (!chart || chart.__watermarkAttached) return;
+    chart.__watermarkAttached = true;
+    const draw = () => {
+        if (chart.customWatermark) {
+            chart.customWatermark.destroy();
+            chart.customWatermark = null;
+        }
+        if (!chart.plotWidth || !chart.plotHeight) return;
+        const cx = chart.plotLeft + chart.plotWidth / 2;
+        const cy = chart.plotTop + chart.plotHeight / 2;
+        chart.customWatermark = chart.renderer.text('Lowcost Research', cx, cy)
+            .attr({ align: 'center', rotation: -18, zIndex: 5 })
+            .css({
+                color: 'rgba(201, 151, 90, 0.14)',
+                fontSize: Math.max(14, Math.min(chart.plotWidth / 10, 30)) + 'px',
+                fontWeight: '800',
+                letterSpacing: '2px',
+                fontFamily: 'Arial, sans-serif'
+            })
+            .add();
+    };
+    Highcharts.addEvent(chart, 'render', draw);
+    draw();
+}
+
 /* ------------------------------ DEPTH CHART ------------------------------ */
 
 function buildDepthChart(data, symbol) {
@@ -56,6 +86,7 @@ function buildDepthChart(data, symbol) {
 
     if (!depthChart) {
         depthChart = Highcharts.chart('depthchart', options);
+        attachChartWatermark(depthChart);
     } else {
         depthChart.update(options, true, true);
     }
@@ -158,6 +189,7 @@ function renderSpreadChart(symbol) {
 
     if (!spreadChart) {
         spreadChart = Highcharts.chart('spreadhistorychart', options);
+        attachChartWatermark(spreadChart);
     } else {
         spreadChart.update(options, true, true);
     }
@@ -354,7 +386,13 @@ function computeAggregateBook(data) {
         });
     });
 
-    return { bestBid, bestAsk, bestBidQty, bestAskQty, totalBidQty, totalAskQty };
+    // Signature of which exchanges contributed, so OFI comparisons only run
+    // against a fetch built from the SAME set of exchanges — mixing in/out an
+    // exchange (e.g. a REST call failing, or the Binance WS feed toggling)
+    // otherwise causes a fake jump that isn't real order flow.
+    const signature = data.map(d => d.exchange).sort().join(',');
+
+    return { bestBid, bestAsk, bestBidQty, bestAskQty, totalBidQty, totalAskQty, signature };
 }
 
 function setQuantValue(id, text, cls) {
@@ -415,8 +453,10 @@ function updateQuantSignals(data, symbol) {
         setQuantValue('quant-vol', 'warming up...');
     }
 
-    // --- Order Flow Imbalance delta vs previous fetch ---
-    if (prevBookState) {
+    // --- Order Flow Imbalance delta vs previous fetch (only if the same set
+    //     of exchanges contributed both times — otherwise it's not a real
+    //     flow change, just a different sample, so we quietly recalibrate) ---
+    if (prevBookState && prevBookState.signature === book.signature) {
         const bidChange = book.totalBidQty - prevBookState.totalBidQty;
         const askChange = book.totalAskQty - prevBookState.totalAskQty;
         const ofi = bidChange - askChange;
@@ -425,7 +465,7 @@ function updateQuantSignals(data, symbol) {
         setQuantValue('quant-ofi', sign + ofi.toFixed(4), ofi > 0 ? 'quant-positive' : (ofi < 0 ? 'quant-negative' : null));
     } else {
         prevOfiValue = 0;
-        setQuantValue('quant-ofi', 'first fetch');
+        setQuantValue('quant-ofi', prevBookState ? 'recalibrating…' : 'first fetch');
     }
     prevBookState = book;
 
@@ -539,7 +579,7 @@ function renderQuantAnalyticsChart(symbol) {
         yAxis: { title: { text: null }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130' },
         series: [{ name: 'Mid Price', type: 'line', data: midSeries, color: '#c9975a', marker: { enabled: false } }]
     });
-    if (!quantChartMid) quantChartMid = Highcharts.chart('qa-chart-mid', midOptions);
+    if (!quantChartMid) { quantChartMid = Highcharts.chart('qa-chart-mid', midOptions); attachChartWatermark(quantChartMid); }
     else quantChartMid.update(midOptions, true, true);
 
     // --- Cumulative OFI ---
@@ -559,7 +599,7 @@ function renderQuantAnalyticsChart(symbol) {
         },
         series: [{ name: 'Cumulative OFI', type: 'area', data: ofiSeries }]
     });
-    if (!quantChartOfi) quantChartOfi = Highcharts.chart('qa-chart-ofi', ofiOptions);
+    if (!quantChartOfi) { quantChartOfi = Highcharts.chart('qa-chart-ofi', ofiOptions); attachChartWatermark(quantChartOfi); }
     else quantChartOfi.update(ofiOptions, true, true);
 
     // --- Spread Z-score ---
@@ -576,7 +616,7 @@ function renderQuantAnalyticsChart(symbol) {
         },
         series: [{ name: 'Spread Z-score', type: 'line', data: zSeries, color: '#5aa9e6', marker: { enabled: false } }]
     });
-    if (!quantChartZscore) quantChartZscore = Highcharts.chart('qa-chart-zscore', zOptions);
+    if (!quantChartZscore) { quantChartZscore = Highcharts.chart('qa-chart-zscore', zOptions); attachChartWatermark(quantChartZscore); }
     else quantChartZscore.update(zOptions, true, true);
 }
 
@@ -666,28 +706,76 @@ function pearsonCorrelation(a, b) {
     return den === 0 ? null : num / den;
 }
 
-function renderAssetCompare() {
+// Maps a range button to a Binance kline interval + candle count, so each
+// range pulls real historical candles directly — no need to wait around
+// accumulating live ticks first.
+const COMPARE_KLINE_PARAMS = {
+    '15m': { interval: '1m', limit: 15 },
+    '1h': { interval: '1m', limit: 60 },
+    '4h': { interval: '5m', limit: 48 },
+    '1d': { interval: '15m', limit: 96 },
+    all: { interval: '1h', limit: 500 }
+};
+
+async function fetchBinanceKlines(symbol, range) {
+    const params = COMPARE_KLINE_PARAMS[range] || COMPARE_KLINE_PARAMS['1h'];
+    const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${params.interval}&limit=${params.limit}`;
+    try {
+        const res = await fetch(url);
+        if (!res.ok) return null;
+        const raw = await res.json();
+        if (!Array.isArray(raw)) return null;
+        // kline row: [openTime, open, high, low, close, volume, closeTime, ...]
+        return raw.map(row => ({ time: row[6], close: parseFloat(row[4]) })).filter(p => isFinite(p.close));
+    } catch (e) {
+        return null;
+    }
+}
+
+async function renderAssetCompare() {
     if (typeof Highcharts === 'undefined') return;
     populateCompareSymbolList();
 
     const symbols = Array.from(selectedCompareSymbols).filter(s => getComparableSymbols().includes(s));
-    const rangeMs = QUANT_RANGES[selectedCompareRange];
-    const cutoff = rangeMs === Infinity ? 0 : Date.now() - rangeMs;
+    if (symbols.length === 0) return;
 
-    const seriesData = symbols.map((sym, idx) => {
-        const history = loadQuantHistory(sym).filter(p => p.time >= cutoff);
-        return { symbol: sym, color: COMPARE_COLORS[idx % COMPARE_COLORS.length], points: history };
-    }).filter(s => s.points.length >= 2);
+    const noteEl = document.getElementById('compare-note');
+    const originalNote = noteEl ? noteEl.textContent : '';
+    if (noteEl) noteEl.textContent = 'Loading historical candles from Binance…';
+
+    const requestRange = selectedCompareRange;
+    const results = await Promise.all(
+        symbols.map(async (sym, idx) => ({
+            symbol: sym,
+            color: COMPARE_COLORS[idx % COMPARE_COLORS.length],
+            points: await fetchBinanceKlines(sym, requestRange)
+        }))
+    );
+
+    if (noteEl) {
+        noteEl.textContent = originalNote || 'Symbols come from your Multi-Symbol Watchlist plus the currently selected main symbol.';
+    }
+
+    // If the range/selection changed again while this fetch was in flight,
+    // drop this stale result instead of overwriting the newer one.
+    if (requestRange !== selectedCompareRange) return;
+
+    const failed = results.filter(r => !r.points || r.points.length < 2).map(r => r.symbol);
+    const seriesData = results.filter(r => r.points && r.points.length >= 2);
+
+    if (noteEl && failed.length > 0) {
+        noteEl.textContent = `Not available on Binance (skipped): ${failed.join(', ')}`;
+    }
 
     // --- Relative performance (rebased to 100) ---
     const perfSeries = seriesData.map(s => {
-        const base = s.points[0].mid;
+        const base = s.points[0].close;
         return {
             name: s.symbol,
             type: 'line',
             color: s.color,
             marker: { enabled: false },
-            data: s.points.map(p => [p.time, base > 0 ? (p.mid / base * 100) : null])
+            data: s.points.map(p => [p.time, base > 0 ? (p.close / base * 100) : null])
         };
     });
     const perfOptions = {
@@ -702,13 +790,13 @@ function renderAssetCompare() {
     };
     const perfEl = document.getElementById('compare-perf-chart');
     if (perfEl) {
-        if (!compareChartPerf) compareChartPerf = Highcharts.chart('compare-perf-chart', perfOptions);
+        if (!compareChartPerf) { compareChartPerf = Highcharts.chart('compare-perf-chart', perfOptions); attachChartWatermark(compareChartPerf); }
         else compareChartPerf.update(perfOptions, true, true);
     }
 
     // --- Volatility comparison (annualized %, from log returns) ---
     const volData = seriesData.map(s => {
-        const returns = logReturns(s.points.map(p => p.mid));
+        const returns = logReturns(s.points.map(p => p.close));
         if (returns.length < 3) return { symbol: s.symbol, vol: 0, color: s.color };
         const mean = returns.reduce((a, b) => a + b, 0) / returns.length;
         const variance = returns.reduce((a, b) => a + (b - mean) ** 2, 0) / returns.length;
@@ -728,14 +816,14 @@ function renderAssetCompare() {
     };
     const volEl = document.getElementById('compare-vol-chart');
     if (volEl) {
-        if (!compareChartVol) compareChartVol = Highcharts.chart('compare-vol-chart', volOptions);
+        if (!compareChartVol) { compareChartVol = Highcharts.chart('compare-vol-chart', volOptions); attachChartWatermark(compareChartVol); }
         else compareChartVol.update(volOptions, true, true);
     }
 
     // --- Correlation matrix ---
     const corrTbody = document.querySelector('#compare-corr-table tbody');
     if (corrTbody) {
-        const returnsMap = seriesData.map(s => ({ symbol: s.symbol, returns: logReturns(s.points.map(p => p.mid)) }));
+        const returnsMap = seriesData.map(s => ({ symbol: s.symbol, returns: logReturns(s.points.map(p => p.close)) }));
         let html = '<tr><th></th>' + returnsMap.map(r => `<th>${r.symbol}</th>`).join('') + '</tr>';
         returnsMap.forEach(rowSym => {
             html += `<tr><th>${rowSym.symbol}</th>`;
