@@ -16,7 +16,7 @@ function setChartHeight() {
 	var windowHeight = window.innerHeight;
 	var chartContainer = document.getElementById('orderbookchart');
 	var available = windowHeight - chartContainer.offsetTop - 10;
-	var chartHeight = Math.max(260, Math.min(available, 520));
+	var chartHeight = Math.max(240, Math.min(available, 420));
 	chartContainer.style.height = chartHeight + 'px';
 }
 
