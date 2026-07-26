@@ -898,6 +898,124 @@
                 grid-template-columns: 1fr;
             }
         }
+        #view-news {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        #view-news.active {
+            display: grid;
+        }
+        @media (max-width: 1000px) {
+            #view-news.active {
+                grid-template-columns: 1fr;
+            }
+        }
+        #fng-panel, #news-panel {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+        #fng-current-row {
+            display: flex;
+            align-items: baseline;
+            gap: 10px;
+            margin: 8px 0 4px 0;
+        }
+        #fng-gauge-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: #c9975a;
+        }
+        #fng-gauge-label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #d7dde5;
+        }
+        #fng-status {
+            font-size: 9px;
+            color: #6b7280;
+            margin-left: auto;
+        }
+        #fng-bar {
+            position: relative;
+            height: 14px;
+            border-radius: 7px;
+            background: linear-gradient(90deg, #ef5350 0%, #e5893f 25%, #e5c07b 50%, #8bc48a 75%, #3ecf8e 100%);
+            margin-top: 6px;
+        }
+        #fng-bar-fill {
+            display: none;
+        }
+        #fng-bar-pointer {
+            position: absolute;
+            top: -4px;
+            width: 4px;
+            height: 22px;
+            background: #ffffff;
+            border-radius: 2px;
+            left: 50%;
+            box-shadow: 0 0 4px rgba(0,0,0,0.6);
+            transition: left 0.4s ease;
+        }
+        #fng-scale-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 8px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        #fng-history-chart {
+            height: 220px;
+            margin-top: 10px;
+        }
+        #news-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0 8px 0;
+        }
+        #news-status {
+            font-size: 9px;
+            color: #6b7280;
+        }
+        #news-list {
+            overflow-y: auto;
+            max-height: 560px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .news-item {
+            display: flex;
+            gap: 8px;
+            padding: 6px;
+            border: 1px solid #232838;
+            border-radius: 5px;
+            background: #171b26;
+            text-decoration: none;
+        }
+        .news-item img {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+        .news-item-title {
+            color: #d7dde5;
+            font-size: 11px;
+            font-weight: bold;
+            line-height: 1.3;
+        }
+        .news-item-meta {
+            color: #6b7280;
+            font-size: 9px;
+            margin-top: 3px;
+        }
+        .news-item:hover .news-item-title {
+            color: #c9975a;
+        }
     </style>
 </head>
 <body>
@@ -914,6 +1032,7 @@
         <button class="tab-btn" data-tab="quant">Quant Analytics</button>
         <button class="tab-btn" data-tab="compare">Asset Compare</button>
         <button class="tab-btn" data-tab="onchain">On-Chain &amp; Derivatives</button>
+        <button class="tab-btn" data-tab="news">News &amp; Sentiment</button>
     </div>
     <div id="controls">
         <div id="dropdown" class="dropdown">
@@ -1265,6 +1384,32 @@
         </div>
     </div>
 
+    <div id="view-news" class="tab-view">
+        <div id="fng-panel" class="quant-cell">
+            <div class="quant-cell-title">Fear &amp; Greed Index — alternative.me</div>
+            <div id="fng-current-row">
+                <div id="fng-gauge-value">-</div>
+                <div id="fng-gauge-label">-</div>
+                <button id="fng-refresh-btn">Refresh</button>
+                <span id="fng-status"></span>
+            </div>
+            <div id="fng-bar"><div id="fng-bar-fill"></div><div id="fng-bar-pointer"></div></div>
+            <div id="fng-scale-labels">
+                <span>Extreme Fear</span><span>Fear</span><span>Neutral</span><span>Greed</span><span>Extreme Greed</span>
+            </div>
+            <div id="fng-history-chart" class="quant-cell-chart"></div>
+        </div>
+
+        <div id="news-panel" class="quant-cell">
+            <div class="quant-cell-title">Latest Crypto News — CryptoCompare</div>
+            <div id="news-controls">
+                <button id="news-refresh-btn">Refresh</button>
+                <span id="news-status"></span>
+            </div>
+            <div id="news-list"></div>
+        </div>
+    </div>
+
 	<div id="versionInfo" style="position: fixed; bottom: 0; right: 0; margin: 1px;">
 		<a><a href="https://chromewebstore.google.com/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf" style="font-weight: bold; margin-right: 5px;">Install CORS browser extension to see data from all exchanges ❗❗</a></a>	
 		<a href="https://github.com/NotDev1/combined-orderbook-exchanges" style="font-weight: bold; margin-right: 5px;">#1.20000000</a>
@@ -1277,6 +1422,7 @@
 	<script src="research.js"></script>
 	<script src="binance-ws.js"></script>
 	<script src="onchain.js"></script>
+	<script src="news.js"></script>
 	<script src="loading.js"></script>
 </body>
 </html>
