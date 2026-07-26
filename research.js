@@ -878,6 +878,9 @@ function initTabs() {
                 if (compareChartPerf) compareChartPerf.reflow();
                 if (compareChartVol) compareChartVol.reflow();
             }
+            if (btn.dataset.tab === 'onchain' && typeof window.initOnchainTab === 'function') {
+                window.initOnchainTab();
+            }
         });
     });
 }
