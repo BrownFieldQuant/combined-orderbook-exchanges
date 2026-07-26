@@ -32,10 +32,11 @@ function attachChartWatermark(chart) {
         if (!chart.plotWidth || !chart.plotHeight) return;
         const cx = chart.plotLeft + chart.plotWidth / 2;
         const cy = chart.plotTop + chart.plotHeight / 2;
+        const accentRgb = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim() || '201, 151, 90';
         chart.customWatermark = chart.renderer.text('Lowcost Research', cx, cy)
             .attr({ align: 'center', rotation: -18, zIndex: 5 })
             .css({
-                color: 'rgba(201, 151, 90, 0.14)',
+                color: `rgba(${accentRgb}, 0.14)`,
                 fontSize: Math.max(14, Math.min(chart.plotWidth / 10, 30)) + 'px',
                 fontWeight: '800',
                 letterSpacing: '2px',
@@ -45,6 +46,9 @@ function attachChartWatermark(chart) {
     };
     Highcharts.addEvent(chart, 'render', draw);
     draw();
+    if (typeof window.registerThemedChart === 'function') {
+        window.registerThemedChart(chart);
+    }
 }
 
 /* ------------------------------ DEPTH CHART ------------------------------ */
