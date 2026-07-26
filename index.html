@@ -692,6 +692,35 @@
             .quant-cell-chart {
                 height: 260px;
             }
+            #indicators-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        #indicators-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #11151d;
+            border: 1px solid #232838;
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 8px;
+        }
+        #indicators-symbol-label {
+            color: #c9975a;
+            font-weight: bold;
+        }
+        #indicators-status {
+            font-size: 9px;
+            color: #6b7280;
+            font-weight: bold;
+        }
+        #indicators-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+            height: 300px;
         }
         #compare-header-bar {
             display: flex;
@@ -1124,6 +1153,25 @@
                     <div class="quant-row"><span>Cumulative OFI</span><span id="qa-cofi">-</span></div>
                     <div class="quant-row"><span>Data Points Collected</span><span id="qa-points">0</span></div>
                 </div>
+            </div>
+        </div>
+
+        <div id="indicators-header">
+            <b>Technical Indicators — <span id="indicators-symbol-label">-</span></b>
+            <span id="indicators-status"></span>
+        </div>
+        <div id="indicators-grid">
+            <div class="quant-cell">
+                <div class="quant-cell-title">Price + Bollinger Bands (20, 2σ)</div>
+                <div id="ind-bb-chart" class="quant-cell-chart"></div>
+            </div>
+            <div class="quant-cell">
+                <div class="quant-cell-title">RSI (14)</div>
+                <div id="ind-rsi-chart" class="quant-cell-chart"></div>
+            </div>
+            <div class="quant-cell">
+                <div class="quant-cell-title">MACD (12, 26, 9)</div>
+                <div id="ind-macd-chart" class="quant-cell-chart"></div>
             </div>
         </div>
     </div>
