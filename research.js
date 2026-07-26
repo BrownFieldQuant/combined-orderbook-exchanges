@@ -629,7 +629,10 @@ function initQuantRangeButtons() {
             btn.classList.add('active');
             selectedQuantRange = btn.dataset.range;
             const symbol = lastRenderedSymbol || document.querySelector('.symbol:checked')?.value;
-            if (symbol) renderQuantAnalyticsChart(symbol);
+            if (symbol) {
+                renderQuantAnalyticsChart(symbol);
+                renderTechnicalIndicators(symbol, selectedQuantRange);
+            }
         });
     });
 }
@@ -717,8 +720,8 @@ const COMPARE_KLINE_PARAMS = {
     all: { interval: '1h', limit: 500 }
 };
 
-async function fetchBinanceKlines(symbol, range) {
-    const params = COMPARE_KLINE_PARAMS[range] || COMPARE_KLINE_PARAMS['1h'];
+async function fetchBinanceKlines(symbol, range, overrideParams) {
+    const params = overrideParams || COMPARE_KLINE_PARAMS[range] || COMPARE_KLINE_PARAMS['1h'];
     const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(symbol)}&interval=${params.interval}&limit=${params.limit}`;
     try {
         const res = await fetch(url);
@@ -729,6 +732,195 @@ async function fetchBinanceKlines(symbol, range) {
         return raw.map(row => ({ time: row[6], close: parseFloat(row[4]) })).filter(p => isFinite(p.close));
     } catch (e) {
         return null;
+    }
+}
+
+/* --------------------------- TECHNICAL INDICATORS -------------------------- */
+
+// Indicators need more warm-up history than the plain range view (MACD's
+// slow EMA alone needs 26 points), so these pull more candles regardless of
+// the selected range, at a coarser-but-consistent interval per range.
+const INDICATOR_KLINE_PARAMS = {
+    '15m': { interval: '1m', limit: 100 },
+    '1h': { interval: '5m', limit: 100 },
+    '4h': { interval: '15m', limit: 100 },
+    '1d': { interval: '1h', limit: 100 },
+    all: { interval: '4h', limit: 200 }
+};
+
+let indBbChart = null;
+let indRsiChart = null;
+let indMacdChart = null;
+
+function computeSMA(values, period) {
+    const out = new Array(values.length).fill(null);
+    let sum = 0;
+    for (let i = 0; i < values.length; i++) {
+        sum += values[i];
+        if (i >= period) sum -= values[i - period];
+        if (i >= period - 1) out[i] = sum / period;
+    }
+    return out;
+}
+
+function computeStdDev(values, period, sma) {
+    const out = new Array(values.length).fill(null);
+    for (let i = period - 1; i < values.length; i++) {
+        const slice = values.slice(i - period + 1, i + 1);
+        const mean = sma[i];
+        const variance = slice.reduce((s, v) => s + (v - mean) ** 2, 0) / period;
+        out[i] = Math.sqrt(variance);
+    }
+    return out;
+}
+
+function computeEMA(values, period) {
+    const out = new Array(values.length).fill(null);
+    const k = 2 / (period + 1);
+    let emaPrev = null;
+    for (let i = 0; i < values.length; i++) {
+        if (values[i] === null) continue;
+        if (emaPrev === null) {
+            emaPrev = values[i];
+        } else {
+            emaPrev = values[i] * k + emaPrev * (1 - k);
+        }
+        out[i] = emaPrev;
+    }
+    return out;
+}
+
+function computeRSI(closes, period) {
+    const out = new Array(closes.length).fill(null);
+    if (closes.length <= period) return out;
+    let gainSum = 0, lossSum = 0;
+    for (let i = 1; i <= period; i++) {
+        const diff = closes[i] - closes[i - 1];
+        if (diff >= 0) gainSum += diff; else lossSum -= diff;
+    }
+    let avgGain = gainSum / period;
+    let avgLoss = lossSum / period;
+    out[period] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+
+    for (let i = period + 1; i < closes.length; i++) {
+        const diff = closes[i] - closes[i - 1];
+        const gain = diff > 0 ? diff : 0;
+        const loss = diff < 0 ? -diff : 0;
+        avgGain = (avgGain * (period - 1) + gain) / period;
+        avgLoss = (avgLoss * (period - 1) + loss) / period;
+        out[i] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+    }
+    return out;
+}
+
+function computeMACD(closes, fast, slow, signalPeriod) {
+    const emaFast = computeEMA(closes, fast);
+    const emaSlow = computeEMA(closes, slow);
+    const macdLine = closes.map((_, i) => (emaFast[i] !== null && emaSlow[i] !== null) ? emaFast[i] - emaSlow[i] : null);
+    const macdValuesOnly = macdLine.map(v => v === null ? null : v);
+    const signalLine = computeEMA(macdValuesOnly, signalPeriod);
+    const histogram = macdLine.map((v, i) => (v !== null && signalLine[i] !== null) ? v - signalLine[i] : null);
+    return { macdLine, signalLine, histogram };
+}
+
+function setIndicatorsStatus(text, isError) {
+    const el = document.getElementById('indicators-status');
+    if (!el) return;
+    el.textContent = text;
+    el.style.color = isError ? '#ef5350' : '#6b7280';
+}
+
+async function renderTechnicalIndicators(symbol, range) {
+    if (typeof Highcharts === 'undefined') return;
+    const label = document.getElementById('indicators-symbol-label');
+    if (label) label.textContent = symbol;
+
+    setIndicatorsStatus('loading…');
+    const params = INDICATOR_KLINE_PARAMS[range] || INDICATOR_KLINE_PARAMS['1h'];
+    const klines = await fetchBinanceKlines(symbol, range, params);
+    if (!klines || klines.length < 30) {
+        setIndicatorsStatus(klines ? 'not enough candles yet' : 'unavailable on Binance for this symbol', true);
+        return;
+    }
+    setIndicatorsStatus(`updated ${new Date().toLocaleTimeString()} · ${klines.length} candles`);
+
+    const times = klines.map(k => k.time);
+    const closes = klines.map(k => k.close);
+
+    // --- Bollinger Bands ---
+    const sma20 = computeSMA(closes, 20);
+    const std20 = computeStdDev(closes, 20, sma20);
+    const upper = closes.map((_, i) => sma20[i] !== null ? sma20[i] + 2 * std20[i] : null);
+    const lower = closes.map((_, i) => sma20[i] !== null ? sma20[i] - 2 * std20[i] : null);
+
+    const bbOptions = {
+        chart: { animation: false, backgroundColor: 'transparent' },
+        title: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: { type: 'datetime', labels: { style: { fontSize: '8px', color: '#9aa4b5' } }, lineColor: '#232838' },
+        yAxis: { title: { text: null }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130' },
+        tooltip: { shared: true, valueDecimals: 4 },
+        plotOptions: { line: { marker: { enabled: false } } },
+        series: [
+            { name: 'Upper Band', data: times.map((t, i) => [t, upper[i]]), color: 'rgba(239, 83, 80, 0.5)', dashStyle: 'Dash' },
+            { name: 'Close', data: times.map((t, i) => [t, closes[i]]), color: '#c9975a', lineWidth: 2 },
+            { name: 'Lower Band', data: times.map((t, i) => [t, lower[i]]), color: 'rgba(62, 207, 142, 0.5)', dashStyle: 'Dash' },
+            { name: 'SMA 20', data: times.map((t, i) => [t, sma20[i]]), color: '#5aa9e6', dashStyle: 'Dot' }
+        ]
+    };
+    const bbEl = document.getElementById('ind-bb-chart');
+    if (bbEl) {
+        if (!indBbChart) { indBbChart = Highcharts.chart('ind-bb-chart', bbOptions); attachChartWatermark(indBbChart); }
+        else indBbChart.update(bbOptions, true, true);
+    }
+
+    // --- RSI ---
+    const rsi = computeRSI(closes, 14);
+    const rsiOptions = {
+        chart: { animation: false, backgroundColor: 'transparent' },
+        title: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: { type: 'datetime', labels: { style: { fontSize: '8px', color: '#9aa4b5' } }, lineColor: '#232838' },
+        yAxis: {
+            title: { text: null }, min: 0, max: 100,
+            labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130',
+            plotLines: [
+                { value: 70, color: 'rgba(239, 83, 80, 0.5)', dashStyle: 'Dash', width: 1 },
+                { value: 30, color: 'rgba(62, 207, 142, 0.5)', dashStyle: 'Dash', width: 1 }
+            ]
+        },
+        tooltip: { valueDecimals: 2 },
+        series: [{ name: 'RSI', type: 'line', data: times.map((t, i) => [t, rsi[i]]), color: '#5aa9e6', marker: { enabled: false } }]
+    };
+    const rsiEl = document.getElementById('ind-rsi-chart');
+    if (rsiEl) {
+        if (!indRsiChart) { indRsiChart = Highcharts.chart('ind-rsi-chart', rsiOptions); attachChartWatermark(indRsiChart); }
+        else indRsiChart.update(rsiOptions, true, true);
+    }
+
+    // --- MACD ---
+    const { macdLine, signalLine, histogram } = computeMACD(closes, 12, 26, 9);
+    const macdOptions = {
+        chart: { animation: false, backgroundColor: 'transparent' },
+        title: { text: null },
+        credits: { enabled: false },
+        legend: { itemStyle: { color: '#d7dde5', fontSize: '9px' } },
+        xAxis: { type: 'datetime', labels: { style: { fontSize: '8px', color: '#9aa4b5' } }, lineColor: '#232838' },
+        yAxis: { title: { text: null }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130', plotLines: [{ value: 0, color: '#6b7280', width: 1 }] },
+        tooltip: { shared: true, valueDecimals: 6 },
+        plotOptions: { column: { negativeColor: '#ef5350', color: '#3ecf8e' }, line: { marker: { enabled: false } } },
+        series: [
+            { name: 'Histogram', type: 'column', data: times.map((t, i) => [t, histogram[i]]) },
+            { name: 'MACD', type: 'line', data: times.map((t, i) => [t, macdLine[i]]), color: '#c9975a' },
+            { name: 'Signal', type: 'line', data: times.map((t, i) => [t, signalLine[i]]), color: '#5aa9e6' }
+        ]
+    };
+    const macdEl = document.getElementById('ind-macd-chart');
+    if (macdEl) {
+        if (!indMacdChart) { indMacdChart = Highcharts.chart('ind-macd-chart', macdOptions); attachChartWatermark(indMacdChart); }
+        else indMacdChart.update(macdOptions, true, true);
     }
 }
 
@@ -868,10 +1060,16 @@ function initTabs() {
             if (target) target.classList.add('active');
             if (btn.dataset.tab === 'quant') {
                 const symbol = document.querySelector('.symbol:checked')?.value;
-                if (symbol) renderQuantAnalyticsChart(symbol);
+                if (symbol) {
+                    renderQuantAnalyticsChart(symbol);
+                    renderTechnicalIndicators(symbol, selectedQuantRange);
+                }
                 if (quantChartMid) quantChartMid.reflow();
                 if (quantChartOfi) quantChartOfi.reflow();
                 if (quantChartZscore) quantChartZscore.reflow();
+                if (indBbChart) indBbChart.reflow();
+                if (indRsiChart) indRsiChart.reflow();
+                if (indMacdChart) indMacdChart.reflow();
             }
             if (btn.dataset.tab === 'compare') {
                 renderAssetCompare();
