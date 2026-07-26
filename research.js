@@ -1086,6 +1086,9 @@ function initTabs() {
             if (btn.dataset.tab === 'news' && typeof window.initNewsTab === 'function') {
                 window.initNewsTab();
             }
+            if (btn.dataset.tab === 'tradfi' && typeof window.initTradfiTab === 'function') {
+                window.initTradfiTab();
+            }
         });
     });
 }
