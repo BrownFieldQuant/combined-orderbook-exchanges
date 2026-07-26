@@ -814,6 +814,61 @@
         #binance-ws-status.error, #watchlist-ws-status.error {
             color: #ef5350;
         }
+        #onchain-note {
+            color: #6b7280;
+            font-size: 9px;
+            margin-bottom: 6px;
+        }
+        #derivatives-panel {
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+        #derivatives-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+        }
+        #derivatives-funding-chart {
+            height: 220px;
+            margin-top: 6px;
+        }
+        #onchain-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        #btc-network-panel, #eth-network-panel {
+            padding: 8px;
+        }
+        #eth-key-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 6px 0;
+            flex-wrap: wrap;
+        }
+        #eth-api-key-input {
+            width: 220px;
+        }
+        #eth-key-note {
+            color: #6b7280;
+            font-size: 9px;
+            margin-top: 6px;
+        }
+        #eth-key-note a {
+            color: #c9975a;
+        }
+        #derivatives-status, #btc-network-status, #eth-network-status {
+            font-size: 9px;
+            font-weight: bold;
+            color: #6b7280;
+        }
+        @media (max-width: 1000px) {
+            #onchain-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -829,6 +884,7 @@
         <button class="tab-btn active" data-tab="orderbook">Order Book</button>
         <button class="tab-btn" data-tab="quant">Quant Analytics</button>
         <button class="tab-btn" data-tab="compare">Asset Compare</button>
+        <button class="tab-btn" data-tab="onchain">On-Chain &amp; Derivatives</button>
     </div>
     <div id="controls">
         <div id="dropdown" class="dropdown">
@@ -1106,6 +1162,61 @@
         </div>
     </div>
 
+    <div id="view-onchain" class="tab-view">
+        <div id="onchain-note">Real, free public data — no mock numbers. Derivatives come from Binance Futures (no key needed). BTC network stats come from mempool.space (no key needed). ETH stats need your own free Etherscan API key (saved only in this browser).</div>
+
+        <div id="derivatives-panel" class="quant-cell">
+            <div class="quant-cell-title">Derivatives — Binance Futures</div>
+            <div id="derivatives-controls">
+                <select id="derivatives-symbol">
+                    <option value="BTCUSDT">BTCUSDT</option>
+                    <option value="ETHUSDT">ETHUSDT</option>
+                    <option value="SOLUSDT">SOLUSDT</option>
+                    <option value="BNBUSDT">BNBUSDT</option>
+                    <option value="XRPUSDT">XRPUSDT</option>
+                    <option value="DOGEUSDT">DOGEUSDT</option>
+                </select>
+                <button id="derivatives-refresh-btn">Refresh</button>
+                <span id="derivatives-status"></span>
+            </div>
+            <div id="derivatives-stats">
+                <div class="quant-row"><span>Mark Price</span><span id="deriv-mark">-</span></div>
+                <div class="quant-row"><span>Current Funding Rate</span><span id="deriv-funding">-</span></div>
+                <div class="quant-row"><span>Next Funding Time</span><span id="deriv-next-funding">-</span></div>
+                <div class="quant-row"><span>Open Interest (contracts)</span><span id="deriv-oi">-</span></div>
+                <div class="quant-row"><span>Top Traders Long/Short Ratio</span><span id="deriv-ls-ratio">-</span></div>
+            </div>
+            <div id="derivatives-funding-chart" class="quant-cell-chart"></div>
+        </div>
+
+        <div id="onchain-grid">
+            <div id="btc-network-panel" class="quant-cell">
+                <div class="quant-cell-title">BTC Network Stats — mempool.space</div>
+                <button id="btc-network-refresh-btn">Refresh</button>
+                <span id="btc-network-status"></span>
+                <div class="quant-row"><span>Block Height</span><span id="btc-height">-</span></div>
+                <div class="quant-row"><span>Mempool Tx Count</span><span id="btc-mempool-count">-</span></div>
+                <div class="quant-row"><span>Mempool Total Fees (BTC)</span><span id="btc-mempool-fees">-</span></div>
+                <div class="quant-row"><span>Estimated Hashrate (EH/s)</span><span id="btc-hashrate">-</span></div>
+                <div class="quant-row"><span>Next Difficulty Adjustment</span><span id="btc-diff-adj">-</span></div>
+            </div>
+
+            <div id="eth-network-panel" class="quant-cell">
+                <div class="quant-cell-title">ETH Network Stats — Etherscan</div>
+                <div id="eth-key-row">
+                    <input type="text" id="eth-api-key-input" placeholder="Your free Etherscan API key">
+                    <button id="eth-key-save-btn">Save Key</button>
+                    <button id="eth-network-refresh-btn">Refresh</button>
+                    <span id="eth-network-status"></span>
+                </div>
+                <div class="quant-row"><span>Total ETH Supply</span><span id="eth-supply">-</span></div>
+                <div class="quant-row"><span>Gas Price — Safe / Propose / Fast (Gwei)</span><span id="eth-gas">-</span></div>
+                <div class="quant-row"><span>Latest Block Number</span><span id="eth-block">-</span></div>
+                <div id="eth-key-note">Get a free key at <a href="https://etherscan.io/apis" target="_blank" rel="noopener">etherscan.io/apis</a> — stored only in your browser's localStorage, never sent anywhere else.</div>
+            </div>
+        </div>
+    </div>
+
 	<div id="versionInfo" style="position: fixed; bottom: 0; right: 0; margin: 1px;">
 		<a><a href="https://chromewebstore.google.com/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf" style="font-weight: bold; margin-right: 5px;">Install CORS browser extension to see data from all exchanges ❗❗</a></a>	
 		<a href="https://github.com/NotDev1/combined-orderbook-exchanges" style="font-weight: bold; margin-right: 5px;">#1.20000000</a>
@@ -1117,6 +1228,7 @@
 	<script src="features.js"></script>
 	<script src="research.js"></script>
 	<script src="binance-ws.js"></script>
+	<script src="onchain.js"></script>
 	<script src="loading.js"></script>
 </body>
 </html>
