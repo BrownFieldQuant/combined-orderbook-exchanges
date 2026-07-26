@@ -1089,6 +1089,9 @@ function initTabs() {
             if (btn.dataset.tab === 'tradfi' && typeof window.initTradfiTab === 'function') {
                 window.initTradfiTab();
             }
+            if (btn.dataset.tab === 'footprint' && typeof window.initFootprintTab === 'function') {
+                window.initFootprintTab();
+            }
         });
     });
 }
