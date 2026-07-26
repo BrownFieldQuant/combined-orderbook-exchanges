@@ -170,9 +170,9 @@ async function loadEthNetwork() {
     setEthStatus('loading…');
     try {
         const [supplyRes, gasRes, blockRes] = await Promise.all([
-            fetch(`https://api.etherscan.io/api?module=stats&action=ethsupply&apikey=${apiKey}`),
-            fetch(`https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=${apiKey}`),
-            fetch(`https://api.etherscan.io/api?module=proxy&action=eth_blockNumber&apikey=${apiKey}`)
+            fetch(`https://api.etherscan.io/v2/api?chainid=1&module=stats&action=ethsupply&apikey=${apiKey}`),
+            fetch(`https://api.etherscan.io/v2/api?chainid=1&module=gastracker&action=gasoracle&apikey=${apiKey}`),
+            fetch(`https://api.etherscan.io/v2/api?chainid=1&module=proxy&action=eth_blockNumber&apikey=${apiKey}`)
         ]);
         const supply = await supplyRes.json();
         const gas = await gasRes.json();
