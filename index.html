@@ -1057,6 +1057,51 @@
                 color: var(--accent);
             }
 
+        #tradfi-note {
+            color: #6b7280;
+            font-size: 9px;
+            margin-bottom: 6px;
+        }
+        #binance-tradfi-controls, #xyz-tradfi-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+        }
+        #binance-tradfi-status, #xyz-tradfi-status {
+            font-size: 9px;
+            font-weight: bold;
+            color: #6b7280;
+        }
+        #binance-tradfi-chart {
+            height: 220px;
+            margin-top: 6px;
+        }
+        #xyz-tradfi-table-wrap {
+            overflow-y: auto;
+            max-height: 420px;
+        }
+        #xyz-tradfi-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 10px;
+        }
+        #xyz-tradfi-table th, #xyz-tradfi-table td {
+            border: 1px solid #232838;
+            padding: 4px 8px;
+            text-align: right;
+            white-space: nowrap;
+        }
+        #xyz-tradfi-table th:first-child, #xyz-tradfi-table td:first-child {
+            text-align: left;
+        }
+        #xyz-tradfi-table th {
+            background: #171b26;
+            color: var(--accent);
+            position: sticky;
+            top: 0;
+        }
+
         }
 
         html[data-theme="light"] {
@@ -1652,11 +1697,66 @@
                 color: var(--accent);
             }
 
+        #tradfi-note {
+            color: #5b6472;
+            font-size: 9px;
+            margin-bottom: 6px;
+        }
+        #binance-tradfi-controls, #xyz-tradfi-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+        }
+        #binance-tradfi-status, #xyz-tradfi-status {
+            font-size: 9px;
+            font-weight: bold;
+            color: #5b6472;
+        }
+        #binance-tradfi-chart {
+            height: 220px;
+            margin-top: 6px;
+        }
+        #xyz-tradfi-table-wrap {
+            overflow-y: auto;
+            max-height: 420px;
+        }
+        #xyz-tradfi-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 10px;
+        }
+        #xyz-tradfi-table th, #xyz-tradfi-table td {
+            border: 1px solid #dcdfe4;
+            padding: 4px 8px;
+            text-align: right;
+            white-space: nowrap;
+        }
+        #xyz-tradfi-table th:first-child, #xyz-tradfi-table td:first-child {
+            text-align: left;
+        }
+        #xyz-tradfi-table th {
+            background: #eef0f3;
+            color: var(--accent);
+            position: sticky;
+            top: 0;
+        }
+
         }
 
         #theme-select {
             font-size: 10px;
             margin-left: 12px;
+        }
+        #tradfi-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        @media (max-width: 1000px) {
+            #tradfi-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -1675,6 +1775,7 @@
         <button class="tab-btn" data-tab="compare">Asset Compare</button>
         <button class="tab-btn" data-tab="onchain">On-Chain &amp; Derivatives</button>
         <button class="tab-btn" data-tab="news">News &amp; Sentiment</button>
+        <button class="tab-btn" data-tab="tradfi">TradFi</button>
         <select id="theme-select" title="Color theme">
             <option value="dark">🌑 Dark (Gold)</option>
             <option value="midnight">🌌 Midnight Blue</option>
@@ -2059,6 +2160,49 @@
         </div>
     </div>
 
+    <div id="view-tradfi" class="tab-view">
+        <div id="tradfi-note">Commodities/FX perpetuals — real prices, no Yahoo Finance. Left panel: Binance's own TradFi perpetuals (fapi.binance.com). Right panel: trade[xyz], a HIP-3 market deployed on Hyperliquid (api.hyperliquid.xyz) offering commodities, FX, and equity perps.</div>
+
+        <div id="tradfi-grid">
+            <div id="binance-tradfi-panel" class="quant-cell">
+                <div class="quant-cell-title">Binance TradFi Perpetuals</div>
+                <div id="binance-tradfi-controls">
+                    <select id="binance-tradfi-symbol">
+                        <option value="XAUUSDT">Gold — XAUUSDT</option>
+                        <option value="XAGUSDT">Silver — XAGUSDT</option>
+                        <option value="CLUSDT">WTI Crude Oil — CLUSDT</option>
+                        <option value="BZUSDT">Brent Crude Oil — BZUSDT</option>
+                        <option value="NATGASUSDT">Natural Gas — NATGASUSDT</option>
+                    </select>
+                    <button id="binance-tradfi-refresh-btn">Refresh</button>
+                    <span id="binance-tradfi-status"></span>
+                </div>
+                <div id="binance-tradfi-stats">
+                    <div class="quant-row"><span>Mark Price</span><span id="btf-mark">-</span></div>
+                    <div class="quant-row"><span>24h Change</span><span id="btf-change">-</span></div>
+                    <div class="quant-row"><span>Funding Rate</span><span id="btf-funding">-</span></div>
+                    <div class="quant-row"><span>Next Funding Time</span><span id="btf-next-funding">-</span></div>
+                    <div class="quant-row"><span>Open Interest</span><span id="btf-oi">-</span></div>
+                </div>
+                <div id="binance-tradfi-chart" class="quant-cell-chart"></div>
+            </div>
+
+            <div id="xyz-tradfi-panel" class="quant-cell">
+                <div class="quant-cell-title">trade[xyz] Markets — Hyperliquid (HIP-3)</div>
+                <div id="xyz-tradfi-controls">
+                    <button id="xyz-tradfi-refresh-btn">Refresh</button>
+                    <span id="xyz-tradfi-status"></span>
+                </div>
+                <div id="xyz-tradfi-table-wrap">
+                    <table id="xyz-tradfi-table">
+                        <thead><tr><th>Market</th><th>Mark Price</th><th>24h Change</th><th>Funding</th><th>Open Interest</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
 	<div id="versionInfo" style="position: fixed; bottom: 0; right: 0; margin: 1px;">
 		<a><a href="https://chromewebstore.google.com/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf" style="font-weight: bold; margin-right: 5px;">Install CORS browser extension to see data from all exchanges ❗❗</a></a>	
 		<a href="https://github.com/NotDev1/combined-orderbook-exchanges" style="font-weight: bold; margin-right: 5px;">#1.20000000</a>
@@ -2072,6 +2216,7 @@
 	<script src="binance-ws.js"></script>
 	<script src="onchain.js"></script>
 	<script src="news.js"></script>
+	<script src="tradfi.js"></script>
 	<script src="theme.js"></script>
 	<script src="loading.js"></script>
 </body>
