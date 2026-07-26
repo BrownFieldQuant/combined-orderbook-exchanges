@@ -1079,6 +1079,9 @@ function initTabs() {
             if (btn.dataset.tab === 'onchain' && typeof window.initOnchainTab === 'function') {
                 window.initOnchainTab();
             }
+            if (btn.dataset.tab === 'news' && typeof window.initNewsTab === 'function') {
+                window.initNewsTab();
+            }
         });
     });
 }
