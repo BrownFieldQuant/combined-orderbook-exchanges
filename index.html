@@ -1102,6 +1102,82 @@
             top: 0;
         }
 
+        #footprint-note {
+            color: #6b7280;
+            font-size: 9px;
+            margin-bottom: 6px;
+        }
+        #footprint-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        #footprint-symbol {
+            width: 100px;
+        }
+        #footprint-ticksize {
+            width: 90px;
+        }
+        #footprint-status {
+            font-size: 9px;
+            font-weight: bold;
+            color: #6b7280;
+        }
+        #footprint-panel {
+            margin-bottom: 8px;
+        }
+        #footprint-grid-wrap {
+            overflow: auto;
+            max-height: 520px;
+            margin-top: 6px;
+        }
+        #footprint-table {
+            border-collapse: collapse;
+            font-size: 9px;
+            font-variant-numeric: tabular-nums;
+        }
+        #footprint-table th, #footprint-table td {
+            border: 1px solid #232838;
+            padding: 2px 4px;
+            text-align: center;
+            white-space: nowrap;
+            min-width: 74px;
+        }
+        #footprint-table thead th {
+            background: #171b26;
+            color: var(--accent);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        #footprint-table td.price-col, #footprint-table th.price-col {
+            position: sticky;
+            left: 0;
+            background: #171b26;
+            color: #d7dde5;
+            font-weight: bold;
+            z-index: 1;
+        }
+        #footprint-table td.delta-row {
+            font-weight: bold;
+        }
+        #footprint-cell-buy {
+            color: #3ecf8e;
+        }
+        #footprint-cell-sell {
+            color: #ef5350;
+        }
+        .fp-delta-pos {
+            color: #3ecf8e;
+        }
+        .fp-delta-neg {
+            color: #ef5350;
+        }
+        #cvd-panel #footprint-cvd-chart {
+            height: 220px;
+        }
+
         }
 
         html[data-theme="light"] {
@@ -1742,6 +1818,82 @@
             top: 0;
         }
 
+        #footprint-note {
+            color: #5b6472;
+            font-size: 9px;
+            margin-bottom: 6px;
+        }
+        #footprint-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        #footprint-symbol {
+            width: 100px;
+        }
+        #footprint-ticksize {
+            width: 90px;
+        }
+        #footprint-status {
+            font-size: 9px;
+            font-weight: bold;
+            color: #5b6472;
+        }
+        #footprint-panel {
+            margin-bottom: 8px;
+        }
+        #footprint-grid-wrap {
+            overflow: auto;
+            max-height: 520px;
+            margin-top: 6px;
+        }
+        #footprint-table {
+            border-collapse: collapse;
+            font-size: 9px;
+            font-variant-numeric: tabular-nums;
+        }
+        #footprint-table th, #footprint-table td {
+            border: 1px solid #dcdfe4;
+            padding: 2px 4px;
+            text-align: center;
+            white-space: nowrap;
+            min-width: 74px;
+        }
+        #footprint-table thead th {
+            background: #eef0f3;
+            color: var(--accent);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        #footprint-table td.price-col, #footprint-table th.price-col {
+            position: sticky;
+            left: 0;
+            background: #eef0f3;
+            color: #1a1f29;
+            font-weight: bold;
+            z-index: 1;
+        }
+        #footprint-table td.delta-row {
+            font-weight: bold;
+        }
+        #footprint-cell-buy {
+            color: #1f9d63;
+        }
+        #footprint-cell-sell {
+            color: #c62828;
+        }
+        .fp-delta-pos {
+            color: #1f9d63;
+        }
+        .fp-delta-neg {
+            color: #c62828;
+        }
+        #cvd-panel #footprint-cvd-chart {
+            height: 220px;
+        }
+
         }
 
         #theme-select {
@@ -1776,6 +1928,7 @@
         <button class="tab-btn" data-tab="onchain">On-Chain &amp; Derivatives</button>
         <button class="tab-btn" data-tab="news">News &amp; Sentiment</button>
         <button class="tab-btn" data-tab="tradfi">TradFi</button>
+        <button class="tab-btn" data-tab="footprint">Footprint</button>
         <select id="theme-select" title="Color theme">
             <option value="dark">🌑 Dark (Gold)</option>
             <option value="midnight">🌌 Midnight Blue</option>
@@ -2203,6 +2356,35 @@
         </div>
     </div>
 
+    <div id="view-footprint" class="tab-view">
+        <div id="footprint-note">Simplified footprint chart — real trades from Binance Futures aggTrade WebSocket, bucketed by price level per candle (buy volume left, sell volume right). Not a port of Cryexc (that's a compiled C++/WASM app, not portable code) — this is a from-scratch build using our own stack, so it's lighter: single exchange, no DOM ladder/options-flow/multi-exchange correlation.</div>
+
+        <div id="footprint-controls">
+            <input type="text" id="footprint-symbol" placeholder="BTCUSDT" value="BTCUSDT">
+            <select id="footprint-interval">
+                <option value="30000">30s</option>
+                <option value="60000" selected>1m</option>
+                <option value="300000">5m</option>
+                <option value="900000">15m</option>
+            </select>
+            <input type="number" id="footprint-ticksize" placeholder="Tick size $" value="10" step="any">
+            <button id="footprint-toggle-btn">Start Stream</button>
+            <span id="footprint-status"></span>
+        </div>
+
+        <div id="footprint-panel" class="quant-cell">
+            <div class="quant-cell-title">Footprint — <span id="footprint-symbol-label">-</span></div>
+            <div id="footprint-grid-wrap">
+                <table id="footprint-table"><thead></thead><tbody></tbody><tfoot></tfoot></table>
+            </div>
+        </div>
+
+        <div id="cvd-panel" class="quant-cell">
+            <div class="quant-cell-title">Cumulative Volume Delta (this session)</div>
+            <div id="footprint-cvd-chart" class="quant-cell-chart"></div>
+        </div>
+    </div>
+
 	<div id="versionInfo" style="position: fixed; bottom: 0; right: 0; margin: 1px;">
 		<a><a href="https://chromewebstore.google.com/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf" style="font-weight: bold; margin-right: 5px;">Install CORS browser extension to see data from all exchanges ❗❗</a></a>	
 		<a href="https://github.com/NotDev1/combined-orderbook-exchanges" style="font-weight: bold; margin-right: 5px;">#1.20000000</a>
@@ -2217,6 +2399,7 @@
 	<script src="onchain.js"></script>
 	<script src="news.js"></script>
 	<script src="tradfi.js"></script>
+	<script src="footprint.js"></script>
 	<script src="theme.js"></script>
 	<script src="loading.js"></script>
 </body>
