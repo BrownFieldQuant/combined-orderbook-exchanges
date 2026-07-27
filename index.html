@@ -12,6 +12,7 @@
     <title>Combined Order Book Data Chart</title>
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/annotations.js"></script>
     <style>
         body {
             font-size: 10px;
@@ -1226,6 +1227,49 @@
             top: 0;
         }
 
+        #events-panel {
+            margin-top: 8px;
+        }
+        #events-note {
+            color: #6b7280;
+            font-size: 9px;
+            margin-bottom: 6px;
+        }
+        #events-builtin-list, #events-custom-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        .event-chip {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            background: #171b26;
+            border: 1px solid #232838;
+            border-radius: 3px;
+            padding: 3px 8px;
+            color: #d7dde5;
+        }
+        .event-chip .event-dates {
+            color: #6b7280;
+            font-size: 9px;
+        }
+        .event-chip button {
+            font-size: 9px;
+            padding: 1px 5px;
+        }
+        #events-add-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        #event-label-input {
+            width: 220px;
+        }
+
         }
 
         html[data-theme="light"] {
@@ -1990,6 +2034,49 @@
             top: 0;
         }
 
+        #events-panel {
+            margin-top: 8px;
+        }
+        #events-note {
+            color: #5b6472;
+            font-size: 9px;
+            margin-bottom: 6px;
+        }
+        #events-builtin-list, #events-custom-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        .event-chip {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10px;
+            background: #eef0f3;
+            border: 1px solid #dcdfe4;
+            border-radius: 3px;
+            padding: 3px 8px;
+            color: #1a1f29;
+        }
+        .event-chip .event-dates {
+            color: #5b6472;
+            font-size: 9px;
+        }
+        .event-chip button {
+            font-size: 9px;
+            padding: 1px 5px;
+        }
+        #events-add-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        #event-label-input {
+            width: 220px;
+        }
+
         }
 
         #theme-select {
@@ -2439,6 +2526,8 @@
                         <option value="BZUSDT">Brent Crude Oil — BZUSDT</option>
                         <option value="NATGASUSDT">Natural Gas — NATGASUSDT</option>
                     </select>
+                    <label><input type="checkbox" id="btf-show-ma" checked> MA(50/200)</label>
+                    <label><input type="checkbox" id="btf-show-events" checked> Event shading</label>
                     <button id="binance-tradfi-refresh-btn">Refresh</button>
                     <span id="binance-tradfi-status"></span>
                 </div>
@@ -2501,6 +2590,19 @@
                 </div>
                 <div id="macro-funding-note">Most positive = longs pay shorts (crowded long, costly to hold); most negative = shorts pay longs (crowded short / cheap to be long).</div>
             </div>
+        </div>
+
+        <div id="events-panel" class="quant-cell">
+            <div class="quant-cell-title">Chart Events (shaded regions on the price chart above)</div>
+            <div id="events-note">A few well-known past events are built in. Add your own (any date range + label) to mark regimes on the chart — like the "Iran war" shading in your example. Applies to the Binance TradFi price chart above.</div>
+            <div id="events-builtin-list"></div>
+            <div id="events-add-row">
+                <input type="date" id="event-from-input">
+                <input type="date" id="event-to-input">
+                <input type="text" id="event-label-input" placeholder="Label (e.g. FOMC surprise hike)">
+                <button id="event-add-btn">Add Event</button>
+            </div>
+            <div id="events-custom-list"></div>
         </div>
     </div>
 
