@@ -1092,6 +1092,9 @@ function initTabs() {
             if (btn.dataset.tab === 'footprint' && typeof window.initFootprintTab === 'function') {
                 window.initFootprintTab();
             }
+            if (btn.dataset.tab === 'macro' && typeof window.initMacroTab === 'function') {
+                window.initMacroTab();
+            }
         });
     });
 }
