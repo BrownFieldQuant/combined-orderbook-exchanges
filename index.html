@@ -1270,6 +1270,76 @@
             width: 220px;
         }
 
+        #macro-liq-note {
+            color: #6b7280;
+            font-size: 9px;
+            margin-bottom: 6px;
+        }
+        #fred-key-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        #fred-api-key-input {
+            width: 220px;
+        }
+        #fred-key-note {
+            font-size: 9px;
+            color: #6b7280;
+        }
+        #fred-key-note a {
+            color: var(--accent);
+        }
+        #macro-liq-panel {
+            margin-bottom: 8px;
+        }
+        #fred-controls, #event-study-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+        }
+        #fred-status, #event-study-status {
+            font-size: 9px;
+            font-weight: bold;
+            color: #6b7280;
+        }
+        #fred-chart {
+            height: 260px;
+        }
+        #event-study-table-wrap {
+            overflow-x: auto;
+            max-height: 420px;
+        }
+        #event-study-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 10px;
+        }
+        #event-study-table th, #event-study-table td {
+            border: 1px solid #232838;
+            padding: 4px 8px;
+            text-align: right;
+            white-space: nowrap;
+        }
+        #event-study-table th:first-child, #event-study-table td:first-child,
+        #event-study-table th:nth-child(2), #event-study-table td:nth-child(2) {
+            text-align: left;
+        }
+        #event-study-table th {
+            background: #171b26;
+            color: var(--accent);
+            position: sticky;
+            top: 0;
+        }
+        #event-study-legend {
+            color: #6b7280;
+            font-size: 9px;
+            margin-top: 6px;
+        }
+
         }
 
         html[data-theme="light"] {
@@ -2077,6 +2147,76 @@
             width: 220px;
         }
 
+        #macro-liq-note {
+            color: #5b6472;
+            font-size: 9px;
+            margin-bottom: 6px;
+        }
+        #fred-key-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        #fred-api-key-input {
+            width: 220px;
+        }
+        #fred-key-note {
+            font-size: 9px;
+            color: #5b6472;
+        }
+        #fred-key-note a {
+            color: var(--accent);
+        }
+        #macro-liq-panel {
+            margin-bottom: 8px;
+        }
+        #fred-controls, #event-study-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+        }
+        #fred-status, #event-study-status {
+            font-size: 9px;
+            font-weight: bold;
+            color: #5b6472;
+        }
+        #fred-chart {
+            height: 260px;
+        }
+        #event-study-table-wrap {
+            overflow-x: auto;
+            max-height: 420px;
+        }
+        #event-study-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 10px;
+        }
+        #event-study-table th, #event-study-table td {
+            border: 1px solid #dcdfe4;
+            padding: 4px 8px;
+            text-align: right;
+            white-space: nowrap;
+        }
+        #event-study-table th:first-child, #event-study-table td:first-child,
+        #event-study-table th:nth-child(2), #event-study-table td:nth-child(2) {
+            text-align: left;
+        }
+        #event-study-table th {
+            background: #eef0f3;
+            color: var(--accent);
+            position: sticky;
+            top: 0;
+        }
+        #event-study-legend {
+            color: #5b6472;
+            font-size: 9px;
+            margin-top: 6px;
+        }
+
         }
 
         #theme-select {
@@ -2128,6 +2268,7 @@
         <button class="tab-btn" data-tab="news">News &amp; Sentiment</button>
         <button class="tab-btn" data-tab="tradfi">TradFi</button>
         <button class="tab-btn" data-tab="footprint">Footprint</button>
+        <button class="tab-btn" data-tab="macro">Macro Liquidity</button>
         <select id="theme-select" title="Color theme">
             <option value="dark">🌑 Dark (Gold)</option>
             <option value="midnight">🌌 Midnight Blue</option>
@@ -2635,6 +2776,48 @@
         </div>
     </div>
 
+    <div id="view-macro" class="tab-view">
+        <div id="macro-liq-note">Real data only, no news scraping (Reuters isn't reachable from the browser — no free public API + CORS). Fed liquidity series come from FRED (St. Louis Fed) with your own free API key. "Events" are real scheduled economic data release dates from FRED itself (CPI, NFP, FOMC) — used here as an event-study calendar: how did Gold/Oil/Nat Gas/BTC actually move around each release.</div>
+
+        <div id="fred-key-row">
+            <input type="text" id="fred-api-key-input" placeholder="Your free FRED API key">
+            <button id="fred-key-save-btn">Save Key</button>
+            <span id="fred-key-note">Free key at <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" rel="noopener">fred.stlouisfed.org</a> — stored only in this browser.</span>
+        </div>
+
+        <div id="macro-liq-panel" class="quant-cell">
+            <div class="quant-cell-title">Fed Liquidity — FRED</div>
+            <div id="fred-controls">
+                <select id="fred-series-select">
+                    <option value="WALCL">Fed Balance Sheet (Total Assets) — WALCL</option>
+                    <option value="M2SL">M2 Money Supply — M2SL</option>
+                    <option value="RRPONTSYD">Overnight Reverse Repo — RRPONTSYD</option>
+                    <option value="SOFR">SOFR (Secured Overnight Financing Rate) — SOFR</option>
+                    <option value="FEDFUNDS">Effective Fed Funds Rate — FEDFUNDS</option>
+                    <option value="DGS10">10-Year Treasury Yield — DGS10</option>
+                </select>
+                <button id="fred-refresh-btn">Refresh</button>
+                <span id="fred-status"></span>
+            </div>
+            <div id="fred-chart" class="quant-cell-chart"></div>
+        </div>
+
+        <div id="event-study-panel" class="quant-cell">
+            <div class="quant-cell-title">Event Study — Real FRED Release Dates vs Asset Reaction</div>
+            <div id="event-study-controls">
+                <button id="event-study-refresh-btn">Load Recent Releases</button>
+                <span id="event-study-status"></span>
+            </div>
+            <div id="event-study-table-wrap">
+                <table id="event-study-table">
+                    <thead><tr><th>Date</th><th>Event</th><th>Gold</th><th>Oil (WTI)</th><th>Nat Gas</th><th>BTC</th><th>SP500-proxy</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <div id="event-study-legend">% = close-to-close change on the release day. SP500-proxy uses an index perpetual from trade[xyz] if one is listed there; shows "n/a" otherwise (no Yahoo Finance fallback, as requested).</div>
+        </div>
+    </div>
+
 	<div id="versionInfo" style="position: fixed; bottom: 0; right: 0; margin: 1px;">
 		<a><a href="https://chromewebstore.google.com/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf" style="font-weight: bold; margin-right: 5px;">Install CORS browser extension to see data from all exchanges ❗❗</a></a>	
 		<a href="https://github.com/NotDev1/combined-orderbook-exchanges" style="font-weight: bold; margin-right: 5px;">#1.20000000</a>
@@ -2650,6 +2833,7 @@
 	<script src="news.js"></script>
 	<script src="tradfi.js"></script>
 	<script src="footprint.js"></script>
+	<script src="macro.js"></script>
 	<script src="theme.js"></script>
 	<script src="loading.js"></script>
 </body>
