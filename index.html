@@ -1340,6 +1340,17 @@
             margin-top: 6px;
         }
 
+        #event-study-table tbody tr {
+            cursor: pointer;
+        }
+        #event-study-table tbody tr:hover {
+            background: #1a1f2b;
+        }
+        #event-study-chart {
+            height: 240px;
+            margin-top: 8px;
+        }
+
         }
 
         html[data-theme="light"] {
@@ -2217,6 +2228,17 @@
             margin-top: 6px;
         }
 
+        #event-study-table tbody tr {
+            cursor: pointer;
+        }
+        #event-study-table tbody tr:hover {
+            background: #e2e5ea;
+        }
+        #event-study-chart {
+            height: 240px;
+            margin-top: 8px;
+        }
+
         }
 
         #theme-select {
@@ -2777,16 +2799,10 @@
     </div>
 
     <div id="view-macro" class="tab-view">
-        <div id="macro-liq-note">Real data only, no news scraping (Reuters isn't reachable from the browser — no free public API + CORS). Fed liquidity series come from FRED (St. Louis Fed) with your own free API key. "Events" are real scheduled economic data release dates from FRED itself (CPI, NFP, FOMC) — used here as an event-study calendar: how did Gold/Oil/Nat Gas/BTC actually move around each release.</div>
-
-        <div id="fred-key-row">
-            <input type="text" id="fred-api-key-input" placeholder="Your free FRED API key">
-            <button id="fred-key-save-btn">Save Key</button>
-            <span id="fred-key-note">Free key at <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" rel="noopener">fred.stlouisfed.org</a> — stored only in this browser.</span>
-        </div>
+        <div id="macro-liq-note">Update: FRED's official API blocks direct browser calls (no CORS) and switched to API v2 auth in Nov 2025 — so a "paste your key" flow like Etherscan's never actually worked here. Fixed: the liquidity chart below now goes through a free community CORS proxy for FRED (fred.libhack.so) — no key needed, but it's an unofficial third party, may rate-limit or go down. The event study now uses the same curated event list as the TradFi tab (not FRED release-dates, which is also CORS-blocked) — pick a window, click a row, get a chart, no manual date typing.</div>
 
         <div id="macro-liq-panel" class="quant-cell">
-            <div class="quant-cell-title">Fed Liquidity — FRED</div>
+            <div class="quant-cell-title">Fed Liquidity — via community FRED proxy</div>
             <div id="fred-controls">
                 <select id="fred-series-select">
                     <option value="WALCL">Fed Balance Sheet (Total Assets) — WALCL</option>
@@ -2803,18 +2819,35 @@
         </div>
 
         <div id="event-study-panel" class="quant-cell">
-            <div class="quant-cell-title">Event Study — Real FRED Release Dates vs Asset Reaction</div>
+            <div class="quant-cell-title">Event Study — click a row for a chart</div>
             <div id="event-study-controls">
-                <button id="event-study-refresh-btn">Load Recent Releases</button>
+                <span>Window:</span>
+                <select id="event-study-window">
+                    <option value="1">±1 day</option>
+                    <option value="3" selected>±3 days</option>
+                    <option value="7">±7 days</option>
+                    <option value="14">±14 days</option>
+                </select>
+                <span>Asset:</span>
+                <select id="event-study-asset">
+                    <option value="XAUUSDT">Gold</option>
+                    <option value="XAGUSDT">Silver</option>
+                    <option value="CLUSDT">WTI Oil</option>
+                    <option value="BZUSDT">Brent Oil</option>
+                    <option value="NATGASUSDT">Natural Gas</option>
+                    <option value="BTCUSDT">BTC</option>
+                </select>
+                <button id="event-study-refresh-btn">Load Events</button>
                 <span id="event-study-status"></span>
             </div>
             <div id="event-study-table-wrap">
                 <table id="event-study-table">
-                    <thead><tr><th>Date</th><th>Event</th><th>Gold</th><th>Oil (WTI)</th><th>Nat Gas</th><th>BTC</th><th>SP500-proxy</th></tr></thead>
+                    <thead><tr><th>Event</th><th>Dates</th><th>Gold</th><th>Oil (WTI)</th><th>Nat Gas</th><th>BTC</th></tr></thead>
                     <tbody></tbody>
                 </table>
             </div>
-            <div id="event-study-legend">% = close-to-close change on the release day. SP500-proxy uses an index perpetual from trade[xyz] if one is listed there; shows "n/a" otherwise (no Yahoo Finance fallback, as requested).</div>
+            <div id="event-study-legend">% = price change from window-start to window-end (using the selected ± window above). Click any row to render a chart for it using the "Asset" dropdown. Event list is shared with the TradFi tab's "Chart Events" — add/remove events there.</div>
+            <div id="event-study-chart" class="quant-cell-chart"></div>
         </div>
     </div>
 
