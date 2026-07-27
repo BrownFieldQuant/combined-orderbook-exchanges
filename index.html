@@ -1178,6 +1178,54 @@
             height: 220px;
         }
 
+        #tradfi-macro-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #11151d;
+            border: 1px solid #232838;
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 8px;
+        }
+        #tradfi-macro-status {
+            font-size: 9px;
+            color: #6b7280;
+            font-weight: bold;
+        }
+        #macro-note, #macro-funding-note {
+            color: #6b7280;
+            font-size: 9px;
+            margin-top: 6px;
+        }
+        #macro-corr-wrap, #macro-funding-wrap {
+            overflow: auto;
+            max-height: 320px;
+            margin-top: 4px;
+        }
+        #macro-corr-table, #macro-funding-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 10px;
+        }
+        #macro-corr-table th, #macro-corr-table td,
+        #macro-funding-table th, #macro-funding-table td {
+            border: 1px solid #232838;
+            padding: 4px 8px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        #macro-funding-table th:first-child, #macro-funding-table td:first-child,
+        #macro-funding-table td:nth-child(2) {
+            text-align: left;
+        }
+        #macro-corr-table th, #macro-funding-table th {
+            background: #171b26;
+            color: var(--accent);
+            position: sticky;
+            top: 0;
+        }
+
         }
 
         html[data-theme="light"] {
@@ -1894,6 +1942,54 @@
             height: 220px;
         }
 
+        #tradfi-macro-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #ffffff;
+            border: 1px solid #dcdfe4;
+            border-radius: 6px;
+            padding: 8px;
+            margin-top: 8px;
+        }
+        #tradfi-macro-status {
+            font-size: 9px;
+            color: #5b6472;
+            font-weight: bold;
+        }
+        #macro-note, #macro-funding-note {
+            color: #5b6472;
+            font-size: 9px;
+            margin-top: 6px;
+        }
+        #macro-corr-wrap, #macro-funding-wrap {
+            overflow: auto;
+            max-height: 320px;
+            margin-top: 4px;
+        }
+        #macro-corr-table, #macro-funding-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 10px;
+        }
+        #macro-corr-table th, #macro-corr-table td,
+        #macro-funding-table th, #macro-funding-table td {
+            border: 1px solid #dcdfe4;
+            padding: 4px 8px;
+            text-align: center;
+            white-space: nowrap;
+        }
+        #macro-funding-table th:first-child, #macro-funding-table td:first-child,
+        #macro-funding-table td:nth-child(2) {
+            text-align: left;
+        }
+        #macro-corr-table th, #macro-funding-table th {
+            background: #eef0f3;
+            color: var(--accent);
+            position: sticky;
+            top: 0;
+        }
+
         }
 
         #theme-select {
@@ -1907,6 +2003,22 @@
         }
         @media (max-width: 1000px) {
             #tradfi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        #tradfi-macro-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        @media (max-width: 1200px) {
+            #tradfi-macro-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (max-width: 800px) {
+            #tradfi-macro-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -2332,6 +2444,8 @@
                 </div>
                 <div id="binance-tradfi-stats">
                     <div class="quant-row"><span>Mark Price</span><span id="btf-mark">-</span></div>
+                    <div class="quant-row"><span>Index Price</span><span id="btf-index">-</span></div>
+                    <div class="quant-row"><span>Basis (Mark − Index)</span><span id="btf-basis">-</span></div>
                     <div class="quant-row"><span>24h Change</span><span id="btf-change">-</span></div>
                     <div class="quant-row"><span>Funding Rate</span><span id="btf-funding">-</span></div>
                     <div class="quant-row"><span>Next Funding Time</span><span id="btf-next-funding">-</span></div>
@@ -2352,6 +2466,40 @@
                         <tbody></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+
+        <div id="tradfi-macro-header">
+            <b>Macro Signals — Desk View</b>
+            <button id="tradfi-macro-refresh-btn">Refresh</button>
+            <span id="tradfi-macro-status"></span>
+        </div>
+
+        <div id="tradfi-macro-grid">
+            <div class="quant-cell">
+                <div class="quant-cell-title">Key Ratios &amp; Spreads</div>
+                <div class="quant-row"><span>Gold/Silver Ratio</span><span id="macro-gsr">-</span></div>
+                <div class="quant-row"><span>WTI–Brent Spread ($)</span><span id="macro-wti-brent">-</span></div>
+                <div class="quant-row"><span>Gold/BTC Ratio (oz per BTC-equiv $)</span><span id="macro-gold-btc">-</span></div>
+                <div id="macro-note">GSR &gt; ~80 historically flags silver cheap vs gold (mean-reversion candidate); Brent premium to WTI widens on supply-risk/transport stress.</div>
+            </div>
+
+            <div class="quant-cell">
+                <div class="quant-cell-title">Cross-Asset Correlation (1h returns, last 100 candles)</div>
+                <div id="macro-corr-wrap">
+                    <table id="macro-corr-table"><tbody></tbody></table>
+                </div>
+            </div>
+
+            <div class="quant-cell">
+                <div class="quant-cell-title">Funding Rate Leaderboard (all TradFi markets)</div>
+                <div id="macro-funding-wrap">
+                    <table id="macro-funding-table">
+                        <thead><tr><th>Market</th><th>Source</th><th>Funding Rate</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div id="macro-funding-note">Most positive = longs pay shorts (crowded long, costly to hold); most negative = shorts pay longs (crowded short / cheap to be long).</div>
             </div>
         </div>
     </div>
