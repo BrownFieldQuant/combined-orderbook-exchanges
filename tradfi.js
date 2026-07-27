@@ -75,28 +75,157 @@ async function loadBinanceTradFi() {
     }
 }
 
+// A few well-known past events, off by default so the chart isn't cluttered —
+// toggle them on to shade the region, same idea as the "Iran war" shading in
+// the research-report style charts. Dates are UTC.
+const BUILTIN_EVENTS = [
+    { id: 'covid', label: 'COVID Crash', from: '2020-02-20', to: '2020-04-07', color: 'rgba(239, 83, 80, 0.10)' },
+    { id: 'ftx', label: 'FTX Collapse', from: '2022-11-06', to: '2022-11-14', color: 'rgba(239, 83, 80, 0.10)' },
+    { id: 'svb', label: 'SVB / Regional Bank Crisis', from: '2023-03-08', to: '2023-03-15', color: 'rgba(239, 83, 80, 0.10)' },
+    { id: 'yencarry', label: 'Yen Carry Unwind', from: '2024-08-02', to: '2024-08-06', color: 'rgba(239, 83, 80, 0.10)' }
+];
+const CUSTOM_EVENTS_KEY = 'tradfi_custom_events';
+
+function loadCustomEvents() {
+    try { return JSON.parse(localStorage.getItem(CUSTOM_EVENTS_KEY)) || []; } catch (e) { return []; }
+}
+function saveCustomEvents(events) {
+    localStorage.setItem(CUSTOM_EVENTS_KEY, JSON.stringify(events));
+}
+function getEnabledBuiltinIds() {
+    try { return JSON.parse(localStorage.getItem('tradfi_builtin_events_enabled')) || []; } catch (e) { return []; }
+}
+function saveEnabledBuiltinIds(ids) {
+    localStorage.setItem('tradfi_builtin_events_enabled', JSON.stringify(ids));
+}
+
+function computeSMA(values, period) {
+    const out = new Array(values.length).fill(null);
+    let sum = 0;
+    for (let i = 0; i < values.length; i++) {
+        sum += values[i];
+        if (i >= period) sum -= values[i - period];
+        if (i >= period - 1) out[i] = sum / period;
+    }
+    return out;
+}
+
+function renderEventChips() {
+    const builtinContainer = document.getElementById('events-builtin-list');
+    const customContainer = document.getElementById('events-custom-list');
+    if (!builtinContainer || !customContainer) return;
+    const enabledIds = getEnabledBuiltinIds();
+
+    builtinContainer.innerHTML = BUILTIN_EVENTS.map(ev => `
+        <label class="event-chip">
+            <input type="checkbox" data-event-id="${ev.id}" ${enabledIds.includes(ev.id) ? 'checked' : ''}>
+            ${ev.label} <span class="event-dates">${ev.from} → ${ev.to}</span>
+        </label>
+    `).join('');
+    builtinContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', () => {
+            let ids = getEnabledBuiltinIds();
+            if (cb.checked) ids.push(cb.dataset.eventId);
+            else ids = ids.filter(id => id !== cb.dataset.eventId);
+            saveEnabledBuiltinIds([...new Set(ids)]);
+            loadBinanceTradFiChart(document.getElementById('binance-tradfi-symbol')?.value || 'XAUUSDT');
+        });
+    });
+
+    const customEvents = loadCustomEvents();
+    customContainer.innerHTML = customEvents.map((ev, i) => `
+        <span class="event-chip">
+            ${ev.label} <span class="event-dates">${ev.from} → ${ev.to}</span>
+            <button data-idx="${i}">✕</button>
+        </span>
+    `).join('');
+    customContainer.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const events = loadCustomEvents();
+            events.splice(parseInt(btn.dataset.idx), 1);
+            saveCustomEvents(events);
+            renderEventChips();
+            loadBinanceTradFiChart(document.getElementById('binance-tradfi-symbol')?.value || 'XAUUSDT');
+        });
+    });
+}
+
+function getActiveEventPlotBands() {
+    const enabledIds = getEnabledBuiltinIds();
+    const active = BUILTIN_EVENTS.filter(ev => enabledIds.includes(ev.id));
+    const custom = loadCustomEvents().map(ev => ({ ...ev, color: ev.color || 'rgba(90, 169, 230, 0.10)' }));
+    return [...active, ...custom].map(ev => ({
+        from: new Date(ev.from + 'T00:00:00Z').getTime(),
+        to: new Date(ev.to + 'T23:59:59Z').getTime(),
+        color: ev.color,
+        label: { text: ev.label, style: { color: '#9aa4b5', fontSize: '9px' }, rotation: 0, y: 14 }
+    }));
+}
+
 async function loadBinanceTradFiChart(symbol) {
     try {
-        const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1h&limit=100`);
+        // Daily candles over the last year — matches the "year high/low +
+        // 200-day MA" style research charts, not a scalping-interval view.
+        const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&limit=365`);
         if (!res.ok) return;
         const rows = await res.json();
-        const data = rows.map(r => [r[6], parseFloat(r[4])]);
+        const times = rows.map(r => r[6]);
+        const closes = rows.map(r => parseFloat(r[4]));
+        const data = times.map((t, i) => [t, closes[i]]);
+
+        const showMA = document.getElementById('btf-show-ma')?.checked !== false;
+        const showEvents = document.getElementById('btf-show-events')?.checked !== false;
+
+        const series = [{ name: symbol, type: 'line', data, color: '#c9975a', marker: { enabled: false }, zIndex: 3 }];
+
+        if (showMA) {
+            const ma50 = computeSMA(closes, 50);
+            const ma200 = computeSMA(closes, 200);
+            if (ma50.some(v => v !== null)) {
+                series.push({ name: 'MA(50)', type: 'line', data: times.map((t, i) => [t, ma50[i]]), color: 'rgba(90, 169, 230, 0.7)', marker: { enabled: false }, zIndex: 2 });
+            }
+            if (ma200.some(v => v !== null)) {
+                series.push({ name: 'MA(200)', type: 'line', data: times.map((t, i) => [t, ma200[i]]), color: 'rgba(62, 207, 142, 0.7)', marker: { enabled: false }, zIndex: 2 });
+            }
+        }
+
+        // --- Year high/low annotations ---
+        let maxIdx = 0, minIdx = 0;
+        closes.forEach((c, i) => { if (c > closes[maxIdx]) maxIdx = i; if (c < closes[minIdx]) minIdx = i; });
+        const annotations = [{
+            draggable: '',
+            labelOptions: { backgroundColor: 'rgba(17, 21, 29, 0.9)', borderColor: '#232838', style: { color: '#d7dde5', fontSize: '9px' } },
+            labels: [
+                { point: { x: times[maxIdx], y: closes[maxIdx], xAxis: 0, yAxis: 0 }, text: `${closes[maxIdx].toLocaleString(undefined, { maximumFractionDigits: 2 })} (Year High)`, y: -20 },
+                { point: { x: times[minIdx], y: closes[minIdx], xAxis: 0, yAxis: 0 }, text: `${closes[minIdx].toLocaleString(undefined, { maximumFractionDigits: 2 })} (Year Low)`, y: 24 }
+            ]
+        }];
 
         const options = {
             chart: { animation: false, backgroundColor: 'transparent' },
             title: { text: null },
             credits: { enabled: false },
-            legend: { enabled: false },
-            xAxis: { type: 'datetime', labels: { style: { fontSize: '9px', color: '#9aa4b5' } }, lineColor: '#232838' },
+            legend: { enabled: showMA, itemStyle: { color: '#d7dde5', fontSize: '9px' } },
+            xAxis: {
+                type: 'datetime',
+                labels: { style: { fontSize: '9px', color: '#9aa4b5' } },
+                lineColor: '#232838',
+                plotBands: showEvents ? getActiveEventPlotBands() : []
+            },
             yAxis: { title: { text: null }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130' },
             tooltip: { valueDecimals: 4 },
-            series: [{ name: symbol, type: 'line', data, color: '#c9975a', marker: { enabled: false } }]
+            annotations,
+            series
         };
 
         if (!btfChart) {
             btfChart = Highcharts.chart('binance-tradfi-chart', options);
             if (typeof attachChartWatermark === 'function') attachChartWatermark(btfChart);
         } else {
+            // Remove old annotations before re-adding to avoid stacking duplicates.
+            while (btfChart.annotations && btfChart.annotations.length) {
+                btfChart.removeAnnotation(btfChart.annotations[0]);
+            }
             btfChart.update(options, true, true);
         }
     } catch (e) {
@@ -285,6 +414,7 @@ async function loadFundingLeaderboard(premiums) {
 window.initTradfiTab = function () {
     loadBinanceTradFi();
     loadXyzMarkets().then(loadMacroSignals);
+    renderEventChips();
     if (btfChart) btfChart.reflow();
 };
 
@@ -296,4 +426,27 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('binance-tradfi-refresh-btn')?.addEventListener('click', loadBinanceTradFi);
     document.getElementById('binance-tradfi-symbol')?.addEventListener('change', loadBinanceTradFi);
     document.getElementById('xyz-tradfi-refresh-btn')?.addEventListener('click', loadXyzMarkets);
+
+    const rerenderChart = () => {
+        const symbol = document.getElementById('binance-tradfi-symbol')?.value || 'XAUUSDT';
+        loadBinanceTradFiChart(symbol);
+    };
+    document.getElementById('btf-show-ma')?.addEventListener('change', rerenderChart);
+    document.getElementById('btf-show-events')?.addEventListener('change', rerenderChart);
+
+    document.getElementById('event-add-btn')?.addEventListener('click', () => {
+        const from = document.getElementById('event-from-input')?.value;
+        const to = document.getElementById('event-to-input')?.value;
+        const label = document.getElementById('event-label-input')?.value.trim();
+        if (!from || !to || !label) {
+            alert('Fill in start date, end date, and a label.');
+            return;
+        }
+        const events = loadCustomEvents();
+        events.push({ from, to, label, color: 'rgba(90, 169, 230, 0.10)' });
+        saveCustomEvents(events);
+        document.getElementById('event-label-input').value = '';
+        renderEventChips();
+        rerenderChart();
+    });
 });
