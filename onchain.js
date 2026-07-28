@@ -92,7 +92,7 @@ async function loadFundingHistory(symbol) {
 
         if (!fundingChart) {
             fundingChart = Highcharts.chart('derivatives-funding-chart', options);
-            if (typeof attachChartWatermark === 'function') attachChartWatermark(fundingChart);
+            if (typeof attachChartWatermark === 'function') attachChartWatermark(fundingChart, 'Binance Futures API');
         } else {
             fundingChart.update(options, true, true);
         }
