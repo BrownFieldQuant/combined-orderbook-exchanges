@@ -1351,6 +1351,27 @@
             margin-top: 8px;
         }
 
+        #fred-key-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }
+        #fred-api-key-input {
+            width: 220px;
+        }
+        #fred-key-note {
+            font-size: 9px;
+            color: #6b7280;
+        }
+        #fred-key-note a {
+            color: var(--accent);
+        }
+        #fred-custom-series {
+            width: 160px;
+        }
+
         }
 
         html[data-theme="light"] {
@@ -2239,6 +2260,27 @@
             margin-top: 8px;
         }
 
+        #fred-key-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }
+        #fred-api-key-input {
+            width: 220px;
+        }
+        #fred-key-note {
+            font-size: 9px;
+            color: #5b6472;
+        }
+        #fred-key-note a {
+            color: var(--accent);
+        }
+        #fred-custom-series {
+            width: 160px;
+        }
+
         }
 
         #theme-select {
@@ -2799,10 +2841,15 @@
     </div>
 
     <div id="view-macro" class="tab-view">
-        <div id="macro-liq-note">Update: FRED's official API blocks direct browser calls (no CORS) and switched to API v2 auth in Nov 2025 — so a "paste your key" flow like Etherscan's never actually worked here. Fixed: the liquidity chart below now goes through a free community CORS proxy for FRED (fred.libhack.so) — no key needed, but it's an unofficial third party, may rate-limit or go down. The event study now uses the same curated event list as the TradFi tab (not FRED release-dates, which is also CORS-blocked) — pick a window, click a row, get a chart, no manual date typing.</div>
+        <div id="macro-liq-note">Real data only, no Reuters/news scraping (not reachable client-side). FRED: your API key is tried first via a direct call (most accurate); if your browser can't reach FRED directly (CORS — common, not your key's fault), it automatically falls back to a free community proxy. Type any FRED series ID to chart it (find IDs on fred.stlouisfed.org). "Events" reuse the same list as the TradFi tab's "Chart Events" — pick a window, click a row, get a chart.</div>
 
         <div id="macro-liq-panel" class="quant-cell">
-            <div class="quant-cell-title">Fed Liquidity — via community FRED proxy</div>
+            <div class="quant-cell-title">Fed Liquidity &amp; Custom FRED Series</div>
+            <div id="fred-key-row">
+                <input type="text" id="fred-api-key-input" placeholder="Your FRED API key (optional but recommended)">
+                <button id="fred-key-save-btn">Save Key</button>
+                <span id="fred-key-note">Free key at <a href="https://fred.stlouisfed.org/docs/api/api_key.html" target="_blank" rel="noopener">fred.stlouisfed.org</a> — tried first (direct call); falls back to a community CORS proxy automatically if your browser can't reach FRED directly.</span>
+            </div>
             <div id="fred-controls">
                 <select id="fred-series-select">
                     <option value="WALCL">Fed Balance Sheet (Total Assets) — WALCL</option>
@@ -2811,7 +2858,9 @@
                     <option value="SOFR">SOFR (Secured Overnight Financing Rate) — SOFR</option>
                     <option value="FEDFUNDS">Effective Fed Funds Rate — FEDFUNDS</option>
                     <option value="DGS10">10-Year Treasury Yield — DGS10</option>
+                    <option value="CPIAUCSL">US CPI (All Urban Consumers) — CPIAUCSL</option>
                 </select>
+                <input type="text" id="fred-custom-series" placeholder="...or type any FRED series ID">
                 <button id="fred-refresh-btn">Refresh</button>
                 <span id="fred-status"></span>
             </div>
