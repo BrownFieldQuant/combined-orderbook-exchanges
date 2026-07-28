@@ -98,7 +98,7 @@ async function loadFredSeries() {
 
         if (!fredChart) {
             fredChart = Highcharts.chart('fred-chart', options);
-            if (typeof attachChartWatermark === 'function') attachChartWatermark(fredChart);
+            if (typeof attachChartWatermark === 'function') attachChartWatermark(fredChart, 'FRED (Federal Reserve Bank of St. Louis)');
         } else {
             fredChart.update(options, true, true);
         }
@@ -244,7 +244,7 @@ async function renderEventChart(row) {
 
     if (!eventStudyChart) {
         eventStudyChart = Highcharts.chart('event-study-chart', options);
-        if (typeof attachChartWatermark === 'function') attachChartWatermark(eventStudyChart);
+        if (typeof attachChartWatermark === 'function') attachChartWatermark(eventStudyChart, 'Binance Futures API');
     } else {
         eventStudyChart.update(options, true, true);
     }
