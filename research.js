@@ -21,9 +21,25 @@ let fetchLog = [];
 // so it's preserved when the person uses Highcharts' built-in "View in full
 // screen" or "Download PNG/JPEG/SVG" export — those only capture the chart's
 // own rendered output, not surrounding page HTML.
-function attachChartWatermark(chart) {
+function attachChartWatermark(chart, sourceLabel) {
     if (!chart || chart.__watermarkAttached) return;
     chart.__watermarkAttached = true;
+
+    // Native Highcharts caption — unlike the diagonal watermark text (which
+    // is drawn manually via the renderer), captions are a first-class
+    // Highcharts feature that's automatically included when exporting to
+    // PNG/JPEG/SVG or viewing fullscreen, so this is the reliable way to
+    // get a "Source: ..." footnote onto exported chart images.
+    const dimColor = document.documentElement.getAttribute('data-theme') === 'light' ? '#5b6472' : '#9aa4b5';
+    const source = sourceLabel ? `Lowcost Research, ${sourceLabel}` : 'Lowcost Research';
+    chart.update({
+        caption: {
+            text: `Source: ${source} · data as of ${new Date().toLocaleString()}`,
+            align: 'left',
+            style: { color: dimColor, fontSize: '9px' }
+        }
+    }, false);
+
     const draw = () => {
         if (chart.customWatermark) {
             chart.customWatermark.destroy();
@@ -90,7 +106,7 @@ function buildDepthChart(data, symbol) {
 
     if (!depthChart) {
         depthChart = Highcharts.chart('depthchart', options);
-        attachChartWatermark(depthChart);
+        attachChartWatermark(depthChart, 'combined order book, multiple exchanges');
     } else {
         depthChart.update(options, true, true);
     }
@@ -193,7 +209,7 @@ function renderSpreadChart(symbol) {
 
     if (!spreadChart) {
         spreadChart = Highcharts.chart('spreadhistorychart', options);
-        attachChartWatermark(spreadChart);
+        attachChartWatermark(spreadChart, 'combined order book, multiple exchanges');
     } else {
         spreadChart.update(options, true, true);
     }
@@ -583,7 +599,7 @@ function renderQuantAnalyticsChart(symbol) {
         yAxis: { title: { text: null }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130' },
         series: [{ name: 'Mid Price', type: 'line', data: midSeries, color: '#c9975a', marker: { enabled: false } }]
     });
-    if (!quantChartMid) { quantChartMid = Highcharts.chart('qa-chart-mid', midOptions); attachChartWatermark(quantChartMid); }
+    if (!quantChartMid) { quantChartMid = Highcharts.chart('qa-chart-mid', midOptions); attachChartWatermark(quantChartMid, 'combined order book, multiple exchanges'); }
     else quantChartMid.update(midOptions, true, true);
 
     // --- Cumulative OFI ---
@@ -603,7 +619,7 @@ function renderQuantAnalyticsChart(symbol) {
         },
         series: [{ name: 'Cumulative OFI', type: 'area', data: ofiSeries }]
     });
-    if (!quantChartOfi) { quantChartOfi = Highcharts.chart('qa-chart-ofi', ofiOptions); attachChartWatermark(quantChartOfi); }
+    if (!quantChartOfi) { quantChartOfi = Highcharts.chart('qa-chart-ofi', ofiOptions); attachChartWatermark(quantChartOfi, 'combined order book, multiple exchanges'); }
     else quantChartOfi.update(ofiOptions, true, true);
 
     // --- Spread Z-score ---
@@ -620,7 +636,7 @@ function renderQuantAnalyticsChart(symbol) {
         },
         series: [{ name: 'Spread Z-score', type: 'line', data: zSeries, color: '#5aa9e6', marker: { enabled: false } }]
     });
-    if (!quantChartZscore) { quantChartZscore = Highcharts.chart('qa-chart-zscore', zOptions); attachChartWatermark(quantChartZscore); }
+    if (!quantChartZscore) { quantChartZscore = Highcharts.chart('qa-chart-zscore', zOptions); attachChartWatermark(quantChartZscore, 'combined order book, multiple exchanges'); }
     else quantChartZscore.update(zOptions, true, true);
 }
 
@@ -875,7 +891,7 @@ async function renderTechnicalIndicators(symbol, range) {
     };
     const bbEl = document.getElementById('ind-bb-chart');
     if (bbEl) {
-        if (!indBbChart) { indBbChart = Highcharts.chart('ind-bb-chart', bbOptions); attachChartWatermark(indBbChart); }
+        if (!indBbChart) { indBbChart = Highcharts.chart('ind-bb-chart', bbOptions); attachChartWatermark(indBbChart, 'Binance klines'); }
         else indBbChart.update(bbOptions, true, true);
     }
 
@@ -900,7 +916,7 @@ async function renderTechnicalIndicators(symbol, range) {
     };
     const rsiEl = document.getElementById('ind-rsi-chart');
     if (rsiEl) {
-        if (!indRsiChart) { indRsiChart = Highcharts.chart('ind-rsi-chart', rsiOptions); attachChartWatermark(indRsiChart); }
+        if (!indRsiChart) { indRsiChart = Highcharts.chart('ind-rsi-chart', rsiOptions); attachChartWatermark(indRsiChart, 'Binance klines'); }
         else indRsiChart.update(rsiOptions, true, true);
     }
 
@@ -923,7 +939,7 @@ async function renderTechnicalIndicators(symbol, range) {
     };
     const macdEl = document.getElementById('ind-macd-chart');
     if (macdEl) {
-        if (!indMacdChart) { indMacdChart = Highcharts.chart('ind-macd-chart', macdOptions); attachChartWatermark(indMacdChart); }
+        if (!indMacdChart) { indMacdChart = Highcharts.chart('ind-macd-chart', macdOptions); attachChartWatermark(indMacdChart, 'Binance klines'); }
         else indMacdChart.update(macdOptions, true, true);
     }
 }
@@ -986,7 +1002,7 @@ async function renderAssetCompare() {
     };
     const perfEl = document.getElementById('compare-perf-chart');
     if (perfEl) {
-        if (!compareChartPerf) { compareChartPerf = Highcharts.chart('compare-perf-chart', perfOptions); attachChartWatermark(compareChartPerf); }
+        if (!compareChartPerf) { compareChartPerf = Highcharts.chart('compare-perf-chart', perfOptions); attachChartWatermark(compareChartPerf, 'Binance klines'); }
         else compareChartPerf.update(perfOptions, true, true);
     }
 
@@ -1012,7 +1028,7 @@ async function renderAssetCompare() {
     };
     const volEl = document.getElementById('compare-vol-chart');
     if (volEl) {
-        if (!compareChartVol) { compareChartVol = Highcharts.chart('compare-vol-chart', volOptions); attachChartWatermark(compareChartVol); }
+        if (!compareChartVol) { compareChartVol = Highcharts.chart('compare-vol-chart', volOptions); attachChartWatermark(compareChartVol, 'Binance klines'); }
         else compareChartVol.update(volOptions, true, true);
     }
 
