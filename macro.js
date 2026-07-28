@@ -250,13 +250,70 @@ async function renderEventChart(row) {
     }
 }
 
+/* ------------------------- LONG-TERM INFLATION EXP ------------------------- */
+
+let inflationExpChart = null;
+
+function setInflationExpStatus(text, isError) {
+    const el = document.getElementById('inflation-exp-status');
+    if (!el) return;
+    el.textContent = text;
+    el.style.color = isError ? '#ef5350' : '#6b7280';
+}
+
+async function loadInflationExpectations() {
+    setInflationExpStatus('loading…');
+    try {
+        const [t5yifr, mich] = await Promise.all([
+            fetchFredObservations('T5YIFR'),
+            fetchFredObservations('MICH')
+        ]);
+
+        const toSeries = (raw) => raw
+            .filter(o => o.value !== '.' && o.value !== null && o.value !== undefined)
+            .map(o => [new Date(o.date + 'T00:00:00Z').getTime(), parseFloat(o.value)])
+            .filter(p => isFinite(p[1]));
+
+        const t5yifrData = toSeries(t5yifr.data);
+        const michData = toSeries(mich.data);
+        if (t5yifrData.length === 0 && michData.length === 0) throw new Error('no data returned for either series');
+
+        const options = {
+            chart: { animation: false, backgroundColor: 'transparent' },
+            title: { text: null },
+            credits: { enabled: false },
+            legend: { itemStyle: { color: '#d7dde5', fontSize: '9px' } },
+            xAxis: { type: 'datetime', labels: { style: { fontSize: '9px', color: '#9aa4b5' } }, lineColor: '#232838' },
+            yAxis: { title: { text: 'Percent', style: { color: '#9aa4b5', fontSize: '9px' } }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130' },
+            tooltip: { shared: true, valueDecimals: 2 },
+            series: [
+                { name: '5Y5Y Breakeven Inflation (T5YIFR)', type: 'line', data: t5yifrData, color: '#c9975a', marker: { enabled: false } },
+                { name: 'UMich Inflation Expectations (MICH)', type: 'line', data: michData, color: '#5aa9e6', marker: { enabled: false } }
+            ]
+        };
+
+        if (!inflationExpChart) {
+            inflationExpChart = Highcharts.chart('inflation-exp-chart', options);
+            attachChartWatermark(inflationExpChart, 'FRED (Federal Reserve Bank of St. Louis)');
+        } else {
+            inflationExpChart.update(options, true, true);
+        }
+
+        setInflationExpStatus('updated ' + new Date().toLocaleTimeString());
+    } catch (e) {
+        setInflationExpStatus('failed — ' + e.message, true);
+    }
+}
+
 /* --------------------------------- INIT ---------------------------------- */
 
 window.initMacroTab = function () {
     loadFredSeries();
     loadEventStudy();
+    loadInflationExpectations();
     if (fredChart) fredChart.reflow();
     if (eventStudyChart) eventStudyChart.reflow();
+    if (inflationExpChart) inflationExpChart.reflow();
 };
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -285,4 +342,5 @@ document.addEventListener('DOMContentLoaded', function () {
         const firstRow = document.querySelector('#event-study-table tbody tr');
         if (firstRow) firstRow.click();
     });
+    document.getElementById('inflation-exp-refresh-btn')?.addEventListener('click', loadInflationExpectations);
 });
