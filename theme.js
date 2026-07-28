@@ -53,7 +53,8 @@ function applyChartTheme(chart, themeName) {
             xAxis: { labels: dimLabelStyle, lineColor: c.border, tickColor: c.border },
             yAxis: { labels: axisLabelStyle, gridLineColor: c.grid, title: { style: { color: c.dim } } },
             legend: { itemStyle: { color: c.text } },
-            subtitle: { style: { color: c.dim } }
+            subtitle: { style: { color: c.dim } },
+            caption: { style: { color: c.dim } }
         }, false, false, false);
         chart.redraw();
     } catch (e) {
