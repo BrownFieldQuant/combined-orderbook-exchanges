@@ -220,7 +220,7 @@ async function loadBinanceTradFiChart(symbol) {
 
         if (!btfChart) {
             btfChart = Highcharts.chart('binance-tradfi-chart', options);
-            if (typeof attachChartWatermark === 'function') attachChartWatermark(btfChart);
+            if (typeof attachChartWatermark === 'function') attachChartWatermark(btfChart, 'Binance Futures API');
         } else {
             // Remove old annotations before re-adding to avoid stacking duplicates.
             while (btfChart.annotations && btfChart.annotations.length) {
