@@ -2,34 +2,32 @@
    Macro Liquidity tab. Real data only:
 
    - Fed liquidity series (balance sheet, M2, reverse repo, SOFR, Fed funds,
-     10Y yield): FRED (Federal Reserve Bank of St. Louis) public API.
-     Requires a free personal API key (pasted by the person, stored only in
-     this browser's localStorage — same pattern as the ETH/Etherscan key).
-   - "Events" are real, scheduled economic data release dates pulled from
-     FRED's own release-dates endpoint (CPI, Non-Farm Payrolls/Employment
-     Situation, FOMC) — not scraped news. Reuters/news headlines aren't
-     reachable client-side (no free public API + no CORS), so this uses
-     FRED's own release calendar instead, which is arguably more rigorous
-     for this purpose anyway: exact dates, no ambiguity.
-   - Asset reaction on each release date (Gold/Oil/NatGas/BTC) comes from
-     Binance klines (same pattern as the rest of the app). SP500 exposure
-     is attempted via trade[xyz]'s index perpetual if one is listed there;
-     otherwise shown as "n/a" (no Yahoo Finance, per instructions).
+     10Y yield): FRED (Federal Reserve Bank of St. Louis).
+
+     IMPORTANT: FRED's own API (api.stlouisfed.org) does NOT set CORS
+     headers for third-party origins, so a direct browser fetch fails no
+     matter how correct the API key/auth is — this isn't a v1-vs-v2 issue,
+     it's a hard CORS block on their side. There's no free way around that
+     from a pure static site without our own backend proxying the request
+     (the "backend" question from earlier in this project). As a practical
+     stopgap, this uses a free, unofficial community CORS proxy
+     (fred.libhack.so) that re-exposes FRED's /observations endpoint with
+     permissive CORS. It's a third party we don't control — it may
+     rate-limit, change, or go down. If it stops working, the honest fix
+     is a small self-hosted proxy, not another client-side workaround.
+
+   - "Events" reuse the SAME curated list from the TradFi tab's "Chart
+     Events" panel (BUILTIN_EVENTS + localStorage custom events defined in
+     tradfi.js) — not FRED's release-dates endpoint, which is blocked by
+     the same CORS issue. Reusing real, dated historical events (or ones
+     the person adds themselves) is more honest than pretending a live
+     news feed exists here.
 */
 
-const FRED_KEY_STORAGE = 'macro_fred_api_key';
-// FRED release IDs for the three release types shown in the event study.
-const FRED_RELEASE_IDS = {
-    CPI: { id: 10, label: 'CPI (Inflation)' },
-    NFP: { id: 50, label: 'Employment Situation (NFP)' },
-    FOMC: { id: 101, label: 'FOMC Press Release' }
-};
+const FRED_PROXY_BASE = 'https://fred.libhack.so/v0';
 
 let fredChart = null;
-
-function getFredApiKey() {
-    return localStorage.getItem(FRED_KEY_STORAGE) || '';
-}
+let eventStudyChart = null;
 
 function setFredStatus(text, isError) {
     const el = document.getElementById('fred-status');
@@ -39,22 +37,21 @@ function setFredStatus(text, isError) {
 }
 
 async function loadFredSeries() {
-    const apiKey = getFredApiKey();
     const seriesId = document.getElementById('fred-series-select')?.value || 'WALCL';
-    if (!apiKey) {
-        setFredStatus('paste your free FRED API key above and click Save Key', true);
-        return;
-    }
-    setFredStatus('loading…');
+    setFredStatus('loading via community proxy…');
     try {
-        const url = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&sort_order=asc&limit=2000`;
+        const url = `${FRED_PROXY_BASE}/observations?series_id=${seriesId}`;
         const res = await fetch(url);
+        if (!res.ok) throw new Error(`proxy returned ${res.status} — it may be down or rate-limited`);
         const json = await res.json();
-        if (!res.ok || !json.observations) throw new Error(json.error_message || 'FRED rejected the request (check API key)');
+        if (!Array.isArray(json)) throw new Error('unexpected proxy response shape');
 
-        const data = json.observations
-            .filter(o => o.value !== '.')
-            .map(o => [new Date(o.date + 'T00:00:00Z').getTime(), parseFloat(o.value)]);
+        const data = json
+            .filter(o => o.value !== '.' && o.value !== null && o.value !== undefined)
+            .map(o => [new Date(o.date + 'T00:00:00Z').getTime(), parseFloat(o.value)])
+            .filter(p => isFinite(p[1]));
+
+        if (data.length === 0) throw new Error('no observations returned for this series');
 
         const options = {
             chart: { animation: false, backgroundColor: 'transparent' },
@@ -74,7 +71,7 @@ async function loadFredSeries() {
             fredChart.update(options, true, true);
         }
 
-        setFredStatus('updated ' + new Date().toLocaleTimeString() + ` · ${data.length} points`);
+        setFredStatus('updated ' + new Date().toLocaleTimeString() + ` · ${data.length} points (via community proxy)`);
     } catch (e) {
         setFredStatus('failed — ' + e.message, true);
     }
@@ -89,42 +86,42 @@ function setEventStudyStatus(text, isError) {
     el.style.color = isError ? '#ef5350' : '#6b7280';
 }
 
-async function fetchFredReleaseDates(releaseId, limit) {
-    const apiKey = getFredApiKey();
-    const url = `https://api.stlouisfed.org/fred/release/dates?release_id=${releaseId}&api_key=${apiKey}&file_type=json&sort_order=desc&limit=${limit}`;
-    const res = await fetch(url);
-    const json = await res.json();
-    if (!res.ok || !json.release_dates) return [];
-    return json.release_dates.map(d => d.date);
+function getAllEvents() {
+    // Reuses BUILTIN_EVENTS / loadCustomEvents() / getEnabledBuiltinIds()
+    // already defined in tradfi.js (shared global scope).
+    const enabledIds = (typeof getEnabledBuiltinIds === 'function') ? getEnabledBuiltinIds() : [];
+    const builtin = (typeof BUILTIN_EVENTS !== 'undefined')
+        ? BUILTIN_EVENTS.filter(ev => enabledIds.includes(ev.id))
+        : [];
+    const custom = (typeof loadCustomEvents === 'function') ? loadCustomEvents() : [];
+    return [...builtin, ...custom];
 }
 
-async function fetchDailyCloses(symbol, days) {
+function addDays(dateStr, days) {
+    const d = new Date(dateStr + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + days);
+    return d.toISOString().slice(0, 10);
+}
+
+async function fetchDailyCloses(symbol, startDate, endDate) {
     try {
-        const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&limit=${days}`);
+        const startMs = new Date(startDate + 'T00:00:00Z').getTime();
+        const endMs = new Date(endDate + 'T23:59:59Z').getTime();
+        const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&startTime=${startMs}&endTime=${endMs}&limit=1000`);
         if (!res.ok) return null;
         const rows = await res.json();
-        // Map "YYYY-MM-DD" (UTC close date) -> {open, close}
-        const map = {};
-        rows.forEach(r => {
-            const dateStr = new Date(r[6]).toISOString().slice(0, 10);
-            map[dateStr] = { open: parseFloat(r[1]), close: parseFloat(r[4]) };
-        });
-        return map;
+        return rows.map(r => [r[6], parseFloat(r[4])]);
     } catch (e) {
         return null;
     }
 }
 
-function findXyzIndexSymbol() {
-    if (typeof xyzMarketsCache === 'undefined' || !Array.isArray(xyzMarketsCache)) return null;
-    const match = xyzMarketsCache.find(m => /SPX|SP500|US500|XYZ100/i.test(m.name));
-    return match ? match.name : null;
-}
-
-function pctChange(closesMap, dateStr) {
-    const day = closesMap?.[dateStr];
-    if (!day || !day.open) return null;
-    return (day.close - day.open) / day.open * 100;
+function pctFromSeries(series) {
+    if (!series || series.length < 2) return null;
+    const first = series[0][1];
+    const last = series[series.length - 1][1];
+    if (!first) return null;
+    return (last - first) / first * 100;
 }
 
 function fmtPct(v) {
@@ -137,85 +134,102 @@ function pctClass(v) {
 }
 
 async function loadEventStudy() {
-    const apiKey = getFredApiKey();
-    if (!apiKey) {
-        setEventStudyStatus('paste your free FRED API key above first', true);
+    const events = getAllEvents();
+    if (events.length === 0) {
+        setEventStudyStatus('no events enabled — go to the TradFi tab → "Chart Events" and tick some, or add your own', true);
+        document.querySelector('#event-study-table tbody').innerHTML = '';
         return;
     }
-    setEventStudyStatus('loading real release dates…');
+
+    setEventStudyStatus('loading asset reactions…');
+    const windowDays = parseInt(document.getElementById('event-study-window')?.value || '3');
 
     try {
-        const [cpiDates, nfpDates, fomcDates] = await Promise.all([
-            fetchFredReleaseDates(FRED_RELEASE_IDS.CPI.id, 6),
-            fetchFredReleaseDates(FRED_RELEASE_IDS.NFP.id, 6),
-            fetchFredReleaseDates(FRED_RELEASE_IDS.FOMC.id, 6)
-        ]);
+        const rows = await Promise.all(events.map(async ev => {
+            const from = addDays(ev.from, -windowDays);
+            const to = addDays(ev.to, windowDays);
+            const [gold, oil, gas, btc] = await Promise.all([
+                fetchDailyCloses('XAUUSDT', from, to),
+                fetchDailyCloses('CLUSDT', from, to),
+                fetchDailyCloses('NATGASUSDT', from, to),
+                fetchDailyCloses('BTCUSDT', from, to)
+            ]);
+            return { ev, from, to, gold: pctFromSeries(gold), oil: pctFromSeries(oil), gas: pctFromSeries(gas), btc: pctFromSeries(btc) };
+        }));
 
-        const events = [
-            ...cpiDates.map(d => ({ date: d, label: FRED_RELEASE_IDS.CPI.label })),
-            ...nfpDates.map(d => ({ date: d, label: FRED_RELEASE_IDS.NFP.label })),
-            ...fomcDates.map(d => ({ date: d, label: FRED_RELEASE_IDS.FOMC.label }))
-        ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 15);
-
-        setEventStudyStatus('loading asset reactions…');
-
-        const [goldMap, oilMap, gasMap, btcMap] = await Promise.all([
-            fetchDailyCloses('XAUUSDT', 120),
-            fetchDailyCloses('CLUSDT', 120),
-            fetchDailyCloses('NATGASUSDT', 120),
-            fetchDailyCloses('BTCUSDT', 120)
-        ]);
-
-        const spxSymbol = findXyzIndexSymbol();
+        rows.sort((a, b) => a.from.localeCompare(b.from));
 
         const tbody = document.querySelector('#event-study-table tbody');
-        tbody.innerHTML = events.map(ev => {
-            const gold = pctChange(goldMap, ev.date);
-            const oil = pctChange(oilMap, ev.date);
-            const gas = pctChange(gasMap, ev.date);
-            const btc = pctChange(btcMap, ev.date);
-            return `<tr>
-                <td>${ev.date}</td>
-                <td>${ev.label}</td>
-                <td class="${pctClass(gold)}">${fmtPct(gold)}</td>
-                <td class="${pctClass(oil)}">${fmtPct(oil)}</td>
-                <td class="${pctClass(gas)}">${fmtPct(gas)}</td>
-                <td class="${pctClass(btc)}">${fmtPct(btc)}</td>
-                <td>${spxSymbol ? 'see trade[xyz] tab (' + spxSymbol + ')' : 'n/a — no index perp found'}</td>
-            </tr>`;
-        }).join('');
+        tbody.innerHTML = rows.map((r, i) => `
+            <tr data-idx="${i}">
+                <td>${r.ev.label}</td>
+                <td>${r.from} → ${r.to}</td>
+                <td class="${pctClass(r.gold)}">${fmtPct(r.gold)}</td>
+                <td class="${pctClass(r.oil)}">${fmtPct(r.oil)}</td>
+                <td class="${pctClass(r.gas)}">${fmtPct(r.gas)}</td>
+                <td class="${pctClass(r.btc)}">${fmtPct(r.btc)}</td>
+            </tr>
+        `).join('');
 
-        setEventStudyStatus('updated ' + new Date().toLocaleTimeString() + ` · ${events.length} releases`);
+        tbody.querySelectorAll('tr').forEach(tr => {
+            tr.addEventListener('click', () => renderEventChart(rows[parseInt(tr.dataset.idx)]));
+        });
+
+        setEventStudyStatus('updated ' + new Date().toLocaleTimeString() + ` · ${rows.length} events`);
+        if (rows.length > 0) renderEventChart(rows[0]);
     } catch (e) {
         setEventStudyStatus('failed — ' + e.message, true);
+    }
+}
+
+async function renderEventChart(row) {
+    const asset = document.getElementById('event-study-asset')?.value || 'XAUUSDT';
+    const series = await fetchDailyCloses(asset, row.from, row.to);
+    if (!series) return;
+
+    const eventStartMs = new Date(row.ev.from + 'T00:00:00Z').getTime();
+    const eventEndMs = new Date(row.ev.to + 'T23:59:59Z').getTime();
+
+    const options = {
+        chart: { animation: false, backgroundColor: 'transparent' },
+        title: { text: `${asset} around: ${row.ev.label}`, style: { fontSize: '11px', color: '#d7dde5' } },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: {
+            type: 'datetime',
+            labels: { style: { fontSize: '9px', color: '#9aa4b5' } },
+            lineColor: '#232838',
+            plotBands: [{ from: eventStartMs, to: eventEndMs, color: 'rgba(239, 83, 80, 0.12)', label: { text: row.ev.label, style: { color: '#9aa4b5', fontSize: '9px' } } }]
+        },
+        yAxis: { title: { text: null }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130' },
+        tooltip: { valueDecimals: 4 },
+        series: [{ name: asset, type: 'line', data: series, color: '#c9975a', marker: { enabled: false } }]
+    };
+
+    if (!eventStudyChart) {
+        eventStudyChart = Highcharts.chart('event-study-chart', options);
+        if (typeof attachChartWatermark === 'function') attachChartWatermark(eventStudyChart);
+    } else {
+        eventStudyChart.update(options, true, true);
     }
 }
 
 /* --------------------------------- INIT ---------------------------------- */
 
 window.initMacroTab = function () {
-    if (getFredApiKey()) {
-        loadFredSeries();
-    } else {
-        setFredStatus('paste your free FRED API key above and click Save Key', true);
-    }
+    loadFredSeries();
+    loadEventStudy();
     if (fredChart) fredChart.reflow();
+    if (eventStudyChart) eventStudyChart.reflow();
 };
 
 document.addEventListener('DOMContentLoaded', function () {
-    const savedKey = getFredApiKey();
-    if (savedKey) {
-        const input = document.getElementById('fred-api-key-input');
-        if (input) input.value = savedKey;
-    }
-
-    document.getElementById('fred-key-save-btn')?.addEventListener('click', () => {
-        const input = document.getElementById('fred-api-key-input');
-        if (!input) return;
-        localStorage.setItem(FRED_KEY_STORAGE, input.value.trim());
-        loadFredSeries();
-    });
     document.getElementById('fred-refresh-btn')?.addEventListener('click', loadFredSeries);
     document.getElementById('fred-series-select')?.addEventListener('change', loadFredSeries);
     document.getElementById('event-study-refresh-btn')?.addEventListener('click', loadEventStudy);
+    document.getElementById('event-study-window')?.addEventListener('change', loadEventStudy);
+    document.getElementById('event-study-asset')?.addEventListener('change', () => {
+        const firstRow = document.querySelector('#event-study-table tbody tr');
+        if (firstRow) firstRow.click();
+    });
 });
