@@ -409,6 +409,129 @@ async function loadFundingLeaderboard(premiums) {
     }).join('');
 }
 
+/* --------------------------- BTC VS EQUITY BASKET --------------------------- */
+
+const DEFAULT_BASKET_TICKERS = ['NVDA', 'AAPL', 'MSFT', 'GOOGL', 'META', 'TSLA'];
+const BASKET_COLORS = ['#c9975a', '#5aa9e6', '#3ecf8e', '#ef5350', '#b48ead', '#e5c07b'];
+let selectedBasketTickers = new Set();
+let btcBasketChart = null;
+
+function setBtcBasketStatus(text, isError) {
+    const el = document.getElementById('btc-basket-status');
+    if (!el) return;
+    el.textContent = text;
+    el.style.color = isError ? '#ef5350' : '#6b7280';
+}
+
+function isLikelyStockTicker(name) {
+    // trade[xyz] mixes commodities/FX/indices in with equities; filter those
+    // out heuristically so the basket picker only shows stock-style tickers.
+    const nonStock = /^(GOLD|SILVER|COPPER|CL|BZ|NATGAS|URANIUM|XYZ100|USA500|EUR|GBP|JPY)$/i;
+    return !nonStock.test(name);
+}
+
+function populateBasketTickerList() {
+    const container = document.getElementById('btc-basket-ticker-list');
+    if (!container) return;
+    const tickers = xyzMarketsCache.map(m => m.name).filter(isLikelyStockTicker);
+
+    if (selectedBasketTickers.size === 0) {
+        DEFAULT_BASKET_TICKERS.forEach(t => { if (tickers.includes(t)) selectedBasketTickers.add(t); });
+        if (selectedBasketTickers.size === 0) tickers.slice(0, 5).forEach(t => selectedBasketTickers.add(t));
+    }
+
+    if (tickers.length === 0) {
+        container.innerHTML = '<span style="color:#6b7280;font-size:10px;">Load trade[xyz] markets first (above) to see available tickers.</span>';
+        return;
+    }
+
+    container.innerHTML = '';
+    tickers.forEach(t => {
+        const label = document.createElement('label');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.checked = selectedBasketTickers.has(t);
+        cb.addEventListener('change', () => {
+            if (cb.checked) selectedBasketTickers.add(t); else selectedBasketTickers.delete(t);
+            loadBtcBasketChart();
+        });
+        label.appendChild(cb);
+        label.appendChild(document.createTextNode(t));
+        container.appendChild(label);
+    });
+}
+
+async function fetchXyzCandles(ticker, days) {
+    try {
+        const endTime = Date.now();
+        const startTime = endTime - days * 24 * 3600 * 1000;
+        const interval = days <= 30 ? '4h' : (days <= 90 ? '12h' : '1d');
+        const res = await fetch('https://api.hyperliquid.xyz/info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: 'candleSnapshot', req: { coin: `xyz:${ticker}`, interval, startTime, endTime } })
+        });
+        if (!res.ok) return null;
+        const rows = await res.json();
+        if (!Array.isArray(rows)) return null;
+        return rows.map(r => [r.t, parseFloat(r.c)]).filter(p => isFinite(p[1]));
+    } catch (e) {
+        return null;
+    }
+}
+
+async function loadBtcBasketChart() {
+    populateBasketTickerList();
+    const tickers = Array.from(selectedBasketTickers);
+    const days = parseInt(document.getElementById('btc-basket-range')?.value || '90');
+    setBtcBasketStatus('loading…');
+
+    try {
+        const btcRes = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=${days <= 30 ? '4h' : (days <= 90 ? '12h' : '1d')}&limit=500`);
+        const btcRows = btcRes.ok ? await btcRes.json() : [];
+        const btcSeries = btcRows.map(r => [r[6], parseFloat(r[4])]);
+
+        const tickerSeries = await Promise.all(tickers.map(async (t, i) => ({
+            name: t, color: BASKET_COLORS[i % BASKET_COLORS.length], data: await fetchXyzCandles(t, days)
+        })));
+
+        const rebase = (series) => {
+            if (!series || series.length === 0) return null;
+            const base = series[0][1];
+            if (!base) return null;
+            return series.map(p => [p[0], p[1] / base * 100]);
+        };
+
+        const series = [{ name: 'BTC', type: 'line', data: rebase(btcSeries), color: '#f7931a', marker: { enabled: false }, lineWidth: 2, zIndex: 3 }];
+        tickerSeries.forEach(s => {
+            const r = rebase(s.data);
+            if (r) series.push({ name: `xyz:${s.name}`, type: 'line', data: r, color: s.color, marker: { enabled: false } });
+        });
+
+        const options = {
+            chart: { animation: false, backgroundColor: 'transparent' },
+            title: { text: null },
+            credits: { enabled: false },
+            legend: { itemStyle: { color: '#d7dde5', fontSize: '9px' } },
+            xAxis: { type: 'datetime', labels: { style: { fontSize: '9px', color: '#9aa4b5' } }, lineColor: '#232838' },
+            yAxis: { title: { text: 'Rebased to 100' }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130', plotLines: [{ value: 100, color: '#6b7280', dashStyle: 'Dash', width: 1 }] },
+            tooltip: { shared: true, valueDecimals: 2 },
+            series
+        };
+
+        if (!btcBasketChart) {
+            btcBasketChart = Highcharts.chart('btc-basket-chart', options);
+            attachChartWatermark(btcBasketChart, 'Binance klines, trade[xyz] via Hyperliquid');
+        } else {
+            btcBasketChart.update(options, true, true);
+        }
+
+        setBtcBasketStatus('updated ' + new Date().toLocaleTimeString());
+    } catch (e) {
+        setBtcBasketStatus('failed — ' + e.message, true);
+    }
+}
+
 /* --------------------------------- INIT ---------------------------------- */
 
 window.initTradfiTab = function () {
