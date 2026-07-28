@@ -25,9 +25,14 @@
 */
 
 const FRED_PROXY_BASE = 'https://fred.libhack.so/v0';
+const FRED_KEY_STORAGE = 'macro_fred_api_key';
 
 let fredChart = null;
 let eventStudyChart = null;
+
+function getFredApiKey() {
+    return localStorage.getItem(FRED_KEY_STORAGE) || '';
+}
 
 function setFredStatus(text, isError) {
     const el = document.getElementById('fred-status');
@@ -36,22 +41,49 @@ function setFredStatus(text, isError) {
     el.style.color = isError ? '#ef5350' : '#6b7280';
 }
 
-async function loadFredSeries() {
-    const seriesId = document.getElementById('fred-series-select')?.value || 'WALCL';
-    setFredStatus('loading via community proxy…');
-    try {
-        const url = `${FRED_PROXY_BASE}/observations?series_id=${seriesId}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`proxy returned ${res.status} — it may be down or rate-limited`);
-        const json = await res.json();
-        if (!Array.isArray(json)) throw new Error('unexpected proxy response shape');
+// Tries FRED's own API directly first (v1-style ?api_key=, using your real
+// key — most reliable/accurate if it works), then falls back to the free
+// community CORS proxy if the direct call is blocked (FRED doesn't set
+// CORS headers for third-party origins, so this often fails regardless of
+// key/version — that's the actual blocker, not v1 vs v2).
+async function fetchFredObservations(seriesId) {
+    const apiKey = getFredApiKey();
+    if (apiKey) {
+        try {
+            const directUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${apiKey}&file_type=json&sort_order=asc&limit=100000`;
+            const res = await fetch(directUrl);
+            if (res.ok) {
+                const json = await res.json();
+                if (json.observations) {
+                    return { source: 'direct (your key)', data: json.observations.map(o => ({ date: o.date, value: o.value })) };
+                }
+            }
+        } catch (e) {
+            // CORS or network failure — fall through to the proxy below.
+        }
+    }
 
-        const data = json
+    const proxyUrl = `${FRED_PROXY_BASE}/observations?series_id=${seriesId}`;
+    const res = await fetch(proxyUrl);
+    if (!res.ok) throw new Error(`proxy returned ${res.status} — it may be down or rate-limited`);
+    const json = await res.json();
+    if (!Array.isArray(json)) throw new Error('unexpected proxy response shape');
+    return { source: 'community proxy', data: json };
+}
+
+async function loadFredSeries() {
+    const customId = document.getElementById('fred-custom-series')?.value.trim();
+    const seriesId = customId || document.getElementById('fred-series-select')?.value || 'WALCL';
+    setFredStatus('loading…');
+    try {
+        const { source, data: raw } = await fetchFredObservations(seriesId);
+
+        const data = raw
             .filter(o => o.value !== '.' && o.value !== null && o.value !== undefined)
             .map(o => [new Date(o.date + 'T00:00:00Z').getTime(), parseFloat(o.value)])
             .filter(p => isFinite(p[1]));
 
-        if (data.length === 0) throw new Error('no observations returned for this series');
+        if (data.length === 0) throw new Error('no observations returned — check the series ID');
 
         const options = {
             chart: { animation: false, backgroundColor: 'transparent' },
@@ -71,7 +103,7 @@ async function loadFredSeries() {
             fredChart.update(options, true, true);
         }
 
-        setFredStatus('updated ' + new Date().toLocaleTimeString() + ` · ${data.length} points (via community proxy)`);
+        setFredStatus('updated ' + new Date().toLocaleTimeString() + ` · ${data.length} points (${source})`);
     } catch (e) {
         setFredStatus('failed — ' + e.message, true);
     }
@@ -199,7 +231,11 @@ async function renderEventChart(row) {
             type: 'datetime',
             labels: { style: { fontSize: '9px', color: '#9aa4b5' } },
             lineColor: '#232838',
-            plotBands: [{ from: eventStartMs, to: eventEndMs, color: 'rgba(239, 83, 80, 0.12)', label: { text: row.ev.label, style: { color: '#9aa4b5', fontSize: '9px' } } }]
+            plotBands: [{ from: eventStartMs, to: eventEndMs, color: 'rgba(239, 83, 80, 0.10)' }],
+            plotLines: [
+                { value: eventStartMs, color: '#9aa4b5', width: 1, dashStyle: 'Dash', label: { text: row.ev.label, style: { color: '#9aa4b5', fontSize: '9px' }, rotation: 0, y: 14 } },
+                { value: eventEndMs, color: '#9aa4b5', width: 1, dashStyle: 'Dash' }
+            ]
         },
         yAxis: { title: { text: null }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130' },
         tooltip: { valueDecimals: 4 },
@@ -224,8 +260,25 @@ window.initMacroTab = function () {
 };
 
 document.addEventListener('DOMContentLoaded', function () {
+    const savedKey = getFredApiKey();
+    if (savedKey) {
+        const input = document.getElementById('fred-api-key-input');
+        if (input) input.value = savedKey;
+    }
+    document.getElementById('fred-key-save-btn')?.addEventListener('click', () => {
+        const input = document.getElementById('fred-api-key-input');
+        if (!input) return;
+        localStorage.setItem(FRED_KEY_STORAGE, input.value.trim());
+        loadFredSeries();
+    });
     document.getElementById('fred-refresh-btn')?.addEventListener('click', loadFredSeries);
-    document.getElementById('fred-series-select')?.addEventListener('change', loadFredSeries);
+    document.getElementById('fred-series-select')?.addEventListener('change', () => {
+        document.getElementById('fred-custom-series').value = '';
+        loadFredSeries();
+    });
+    document.getElementById('fred-custom-series')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') loadFredSeries();
+    });
     document.getElementById('event-study-refresh-btn')?.addEventListener('click', loadEventStudy);
     document.getElementById('event-study-window')?.addEventListener('change', loadEventStudy);
     document.getElementById('event-study-asset')?.addEventListener('change', () => {
