@@ -71,7 +71,7 @@ async function loadFearGreed() {
 
         if (!fngHistoryChart) {
             fngHistoryChart = Highcharts.chart('fng-history-chart', options);
-            if (typeof attachChartWatermark === 'function') attachChartWatermark(fngHistoryChart);
+            if (typeof attachChartWatermark === 'function') attachChartWatermark(fngHistoryChart, 'alternative.me Fear & Greed Index');
         } else {
             fngHistoryChart.update(options, true, true);
         }
