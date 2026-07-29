@@ -319,6 +319,7 @@
         };
 
         manuallyStopped = false;
+        connectKlineStream(currentSymbol, intervalMs);
     }
 
     function disconnect(updateUi) {
@@ -330,6 +331,7 @@
             try { ws.close(); } catch (e) { /* ignore */ }
             ws = null;
         }
+        disconnectKlineStream();
         if (updateUi !== false) setStatus('off');
     }
 
@@ -353,5 +355,6 @@
 
     window.initFootprintTab = function () {
         if (cvdChart) cvdChart.reflow();
+        if (klineChart) klineChart.reflow();
     };
 })();
