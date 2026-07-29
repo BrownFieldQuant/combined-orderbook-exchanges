@@ -1396,17 +1396,36 @@
             flex-wrap: wrap;
             gap: 6px;
             margin-bottom: 6px;
+            min-height: 24px;
         }
-        #btc-basket-ticker-list label {
+        #btc-basket-search {
+            width: 200px;
+        }
+        .basket-chip {
             display: flex;
             align-items: center;
-            gap: 3px;
+            gap: 5px;
             font-size: 10px;
             color: #d7dde5;
             background: #171b26;
             border: 1px solid #232838;
             border-radius: 3px;
             padding: 3px 8px;
+        }
+        .basket-chip .basket-chip-source {
+            color: #6b7280;
+            font-size: 9px;
+        }
+        .basket-chip button {
+            font-size: 9px;
+            padding: 1px 5px;
+        }
+        .basket-chip.pending {
+            color: #6b7280;
+        }
+        .basket-chip.failed {
+            border-color: #5a2020;
+            color: #ef5350;
         }
 
         }
@@ -2342,17 +2361,36 @@
             flex-wrap: wrap;
             gap: 6px;
             margin-bottom: 6px;
+            min-height: 24px;
         }
-        #btc-basket-ticker-list label {
+        #btc-basket-search {
+            width: 200px;
+        }
+        .basket-chip {
             display: flex;
             align-items: center;
-            gap: 3px;
+            gap: 5px;
             font-size: 10px;
             color: #1a1f29;
             background: #eef0f3;
             border: 1px solid #dcdfe4;
             border-radius: 3px;
             padding: 3px 8px;
+        }
+        .basket-chip .basket-chip-source {
+            color: #5b6472;
+            font-size: 9px;
+        }
+        .basket-chip button {
+            font-size: 9px;
+            padding: 1px 5px;
+        }
+        .basket-chip.pending {
+            color: #5b6472;
+        }
+        .basket-chip.failed {
+            border-color: #f3b4b4;
+            color: #c62828;
         }
 
         }
@@ -2838,7 +2876,7 @@
         </div>
 
         <div id="btc-basket-panel" class="quant-cell">
-            <div class="quant-cell-title">BTC vs Equity Basket — trade[xyz] (Hyperliquid)</div>
+            <div class="quant-cell-title">BTC vs Asset Basket — Binance → Hyperliquid → trade[xyz]</div>
             <div id="btc-basket-controls">
                 <span>Range:</span>
                 <select id="btc-basket-range">
@@ -2847,12 +2885,15 @@
                     <option value="180">180d</option>
                     <option value="365">1y</option>
                 </select>
+                <input type="text" id="btc-basket-search" placeholder="Search ticker (e.g. NVDA, ETH, GOLD)" list="btc-basket-suggestions">
+                <datalist id="btc-basket-suggestions"></datalist>
+                <button id="btc-basket-add-btn">Add</button>
                 <button id="btc-basket-refresh-btn">Refresh</button>
                 <span id="btc-basket-status"></span>
             </div>
             <div id="btc-basket-ticker-list"></div>
             <div id="btc-basket-chart" class="quant-cell-chart"></div>
-            <div id="btc-basket-note">Rebased to 100 at the start of the range, same method as Asset Compare. Tickers come from trade[xyz]'s live market list — tick which ones to include (defaults to a few large-cap tech names if present).</div>
+            <div id="btc-basket-note">Rebased to 100 at the start of the range. Each ticker is tried on Binance first (fastest/most reliable), then Hyperliquid's main perp market, then trade[xyz] (HIP-3) as a last resort for stocks/commodities not on the first two. Source used per ticker is shown in the chip below.</div>
         </div>
 
         <div id="tradfi-macro-header">
