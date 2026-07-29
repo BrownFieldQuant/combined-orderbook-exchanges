@@ -608,6 +608,7 @@
             }
             #tab-bar {
                 display: flex;
+                flex-wrap: wrap;
                 justify-content: flex-end;
                 gap: 4px;
                 margin-bottom: 8px;
@@ -635,7 +636,9 @@
                 display: none;
             }
             .tab-view.active {
-                display: block;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
             }
             #quant-header-bar {
                 display: flex;
@@ -1372,6 +1375,40 @@
             width: 160px;
         }
 
+        #inflation-exp-controls, #btc-basket-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+        }
+        #inflation-exp-status, #btc-basket-status {
+            font-size: 9px;
+            font-weight: bold;
+            color: #6b7280;
+        }
+        #inflation-exp-note, #btc-basket-note {
+            color: #6b7280;
+            font-size: 9px;
+            margin-top: 6px;
+        }
+        #btc-basket-ticker-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        #btc-basket-ticker-list label {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 10px;
+            color: #d7dde5;
+            background: #171b26;
+            border: 1px solid #232838;
+            border-radius: 3px;
+            padding: 3px 8px;
+        }
+
         }
 
         html[data-theme="light"] {
@@ -1517,6 +1554,7 @@
             }
             #tab-bar {
                 display: flex;
+                flex-wrap: wrap;
                 justify-content: flex-end;
                 gap: 4px;
                 margin-bottom: 8px;
@@ -1544,7 +1582,9 @@
                 display: none;
             }
             .tab-view.active {
-                display: block;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
             }
             #quant-header-bar {
                 display: flex;
@@ -2281,6 +2321,40 @@
             width: 160px;
         }
 
+        #inflation-exp-controls, #btc-basket-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+        }
+        #inflation-exp-status, #btc-basket-status {
+            font-size: 9px;
+            font-weight: bold;
+            color: #5b6472;
+        }
+        #inflation-exp-note, #btc-basket-note {
+            color: #5b6472;
+            font-size: 9px;
+            margin-top: 6px;
+        }
+        #btc-basket-ticker-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        #btc-basket-ticker-list label {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 10px;
+            color: #1a1f29;
+            background: #eef0f3;
+            border: 1px solid #dcdfe4;
+            border-radius: 3px;
+            padding: 3px 8px;
+        }
+
         }
 
         #theme-select {
@@ -2763,6 +2837,24 @@
             </div>
         </div>
 
+        <div id="btc-basket-panel" class="quant-cell">
+            <div class="quant-cell-title">BTC vs Equity Basket — trade[xyz] (Hyperliquid)</div>
+            <div id="btc-basket-controls">
+                <span>Range:</span>
+                <select id="btc-basket-range">
+                    <option value="30">30d</option>
+                    <option value="90" selected>90d</option>
+                    <option value="180">180d</option>
+                    <option value="365">1y</option>
+                </select>
+                <button id="btc-basket-refresh-btn">Refresh</button>
+                <span id="btc-basket-status"></span>
+            </div>
+            <div id="btc-basket-ticker-list"></div>
+            <div id="btc-basket-chart" class="quant-cell-chart"></div>
+            <div id="btc-basket-note">Rebased to 100 at the start of the range, same method as Asset Compare. Tickers come from trade[xyz]'s live market list — tick which ones to include (defaults to a few large-cap tech names if present).</div>
+        </div>
+
         <div id="tradfi-macro-header">
             <b>Macro Signals — Desk View</b>
             <button id="tradfi-macro-refresh-btn">Refresh</button>
@@ -2865,6 +2957,16 @@
                 <span id="fred-status"></span>
             </div>
             <div id="fred-chart" class="quant-cell-chart"></div>
+        </div>
+
+        <div id="inflation-exp-panel" class="quant-cell">
+            <div class="quant-cell-title">Long-Term Inflation Expectations — FRED</div>
+            <div id="inflation-exp-controls">
+                <button id="inflation-exp-refresh-btn">Load</button>
+                <span id="inflation-exp-status"></span>
+            </div>
+            <div id="inflation-exp-chart" class="quant-cell-chart"></div>
+            <div id="inflation-exp-note">5Y5Y Forward Breakeven (T5YIFR) vs University of Michigan 1-Year Inflation Expectations (MICH) — both real FRED series. (SPF from the original chart isn't in FRED and is skipped rather than faked.)</div>
         </div>
 
         <div id="event-study-panel" class="quant-cell">
