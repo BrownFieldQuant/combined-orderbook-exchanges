@@ -13,6 +13,7 @@
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
     <script src="https://code.highcharts.com/modules/annotations.js"></script>
+    <script src="https://code.highcharts.com/modules/stock.js"></script>
     <style>
         body {
             font-size: 10px;
@@ -1181,6 +1182,9 @@
         #cvd-panel #footprint-cvd-chart {
             height: 220px;
         }
+        #footprint-candle-panel #footprint-candle-chart {
+            height: 320px;
+        }
 
         #tradfi-macro-header {
             display: flex;
@@ -2146,6 +2150,9 @@
         #cvd-panel #footprint-cvd-chart {
             height: 220px;
         }
+        #footprint-candle-panel #footprint-candle-chart {
+            height: 320px;
+        }
 
         #tradfi-macro-header {
             display: flex;
@@ -2958,6 +2965,11 @@
             <input type="number" id="footprint-ticksize" placeholder="Tick size $" value="10" step="any">
             <button id="footprint-toggle-btn">Start Stream</button>
             <span id="footprint-status"></span>
+        </div>
+
+        <div id="footprint-candle-panel" class="quant-cell">
+            <div class="quant-cell-title">Price — Binance Kline WebSocket</div>
+            <div id="footprint-candle-chart" class="quant-cell-chart"></div>
         </div>
 
         <div id="footprint-panel" class="quant-cell">
