@@ -37,6 +37,24 @@ function attachChartWatermark(chart, sourceLabel) {
             text: `Source: ${source} · data as of ${new Date().toLocaleString()}`,
             align: 'left',
             style: { color: dimColor, fontSize: '9px' }
+        },
+        // Downloaded/exported images (PNG, JPEG, SVG) and print always use a
+        // white background regardless of the on-screen theme — so force all
+        // text to black here specifically for exports, otherwise light-theme
+        // text (styled for a dark background) becomes invisible on the white
+        // export canvas. This only affects the exported copy, not the live
+        // on-screen chart.
+        exporting: {
+            chartOptions: {
+                chart: { backgroundColor: '#ffffff' },
+                title: { style: { color: '#1a1a1a' } },
+                subtitle: { style: { color: '#333333' } },
+                caption: { style: { color: '#333333' } },
+                legend: { itemStyle: { color: '#1a1a1a' }, itemHoverStyle: { color: '#000000' } },
+                xAxis: { labels: { style: { color: '#1a1a1a' } }, lineColor: '#888888', tickColor: '#888888', title: { style: { color: '#1a1a1a' } } },
+                yAxis: { labels: { style: { color: '#1a1a1a' } }, gridLineColor: '#dddddd', title: { style: { color: '#1a1a1a' } } },
+                tooltip: { style: { color: '#1a1a1a' } }
+            }
         }
     }, false);
 
