@@ -409,11 +409,12 @@ async function loadFundingLeaderboard(premiums) {
     }).join('');
 }
 
-/* --------------------------- BTC VS EQUITY BASKET --------------------------- */
+/* --------------------------- BTC VS ASSET BASKET --------------------------- */
 
-const DEFAULT_BASKET_TICKERS = ['NVDA', 'AAPL', 'MSFT', 'GOOGL', 'META', 'TSLA'];
+const DEFAULT_BASKET_TICKERS = ['NVDA', 'ETH'];
 const BASKET_COLORS = ['#c9975a', '#5aa9e6', '#3ecf8e', '#ef5350', '#b48ead', '#e5c07b'];
-let selectedBasketTickers = new Set();
+// symbol -> { source, data, error } once resolved by loadBtcBasketChart
+let basketTickers = new Map();
 let btcBasketChart = null;
 
 function setBtcBasketStatus(text, isError) {
@@ -423,77 +424,114 @@ function setBtcBasketStatus(text, isError) {
     el.style.color = isError ? '#ef5350' : '#6b7280';
 }
 
-function isLikelyStockTicker(name) {
-    // trade[xyz] mixes commodities/FX/indices in with equities; filter those
-    // out heuristically so the basket picker only shows stock-style tickers.
-    const nonStock = /^(GOLD|SILVER|COPPER|CL|BZ|NATGAS|URANIUM|XYZ100|USA500|EUR|GBP|JPY)$/i;
-    return !nonStock.test(name);
+function intervalForDays(days) {
+    return days <= 30 ? '4h' : (days <= 90 ? '12h' : '1d');
 }
 
-function populateBasketTickerList() {
-    const container = document.getElementById('btc-basket-ticker-list');
-    if (!container) return;
-    const tickers = xyzMarketsCache.map(m => m.name).filter(isLikelyStockTicker);
-
-    if (selectedBasketTickers.size === 0) {
-        DEFAULT_BASKET_TICKERS.forEach(t => { if (tickers.includes(t)) selectedBasketTickers.add(t); });
-        if (selectedBasketTickers.size === 0) tickers.slice(0, 5).forEach(t => selectedBasketTickers.add(t));
+async function fetchBinanceCandles(ticker, days) {
+    const symbol = ticker.toUpperCase().endsWith('USDT') ? ticker.toUpperCase() : `${ticker.toUpperCase()}USDT`;
+    try {
+        const res = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${intervalForDays(days)}&limit=500`);
+        if (!res.ok) return null;
+        const rows = await res.json();
+        if (!Array.isArray(rows) || rows.length === 0) return null;
+        return rows.map(r => [r[6], parseFloat(r[4])]).filter(p => isFinite(p[1]));
+    } catch (e) {
+        return null;
     }
-
-    if (tickers.length === 0) {
-        container.innerHTML = '<span style="color:#6b7280;font-size:10px;">Load trade[xyz] markets first (above) to see available tickers.</span>';
-        return;
-    }
-
-    container.innerHTML = '';
-    tickers.forEach(t => {
-        const label = document.createElement('label');
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.checked = selectedBasketTickers.has(t);
-        cb.addEventListener('change', () => {
-            if (cb.checked) selectedBasketTickers.add(t); else selectedBasketTickers.delete(t);
-            loadBtcBasketChart();
-        });
-        label.appendChild(cb);
-        label.appendChild(document.createTextNode(t));
-        container.appendChild(label);
-    });
 }
 
-async function fetchXyzCandles(ticker, days) {
+async function fetchHyperliquidCandles(ticker, days, dex) {
     try {
         const endTime = Date.now();
         const startTime = endTime - days * 24 * 3600 * 1000;
-        const interval = days <= 30 ? '4h' : (days <= 90 ? '12h' : '1d');
+        const coin = dex ? `${dex}:${ticker.toUpperCase()}` : ticker.toUpperCase();
+        const body = { type: 'candleSnapshot', req: { coin, interval: intervalForDays(days), startTime, endTime } };
         const res = await fetch('https://api.hyperliquid.xyz/info', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: 'candleSnapshot', req: { coin: `xyz:${ticker}`, interval, startTime, endTime } })
+            body: JSON.stringify(body)
         });
         if (!res.ok) return null;
         const rows = await res.json();
-        if (!Array.isArray(rows)) return null;
+        if (!Array.isArray(rows) || rows.length === 0) return null;
         return rows.map(r => [r.t, parseFloat(r.c)]).filter(p => isFinite(p[1]));
     } catch (e) {
         return null;
     }
 }
 
+// Cascade: Binance (fastest/most reliable) -> Hyperliquid main perp market
+// -> trade[xyz] (HIP-3) as a last resort for stocks/commodities/FX that
+// aren't on the first two. Returns { source, data } or { source: null }.
+async function resolveTickerCandles(ticker, days) {
+    let data = await fetchBinanceCandles(ticker, days);
+    if (data) return { source: 'Binance', data };
+
+    data = await fetchHyperliquidCandles(ticker, days, null);
+    if (data) return { source: 'Hyperliquid', data };
+
+    data = await fetchHyperliquidCandles(ticker, days, 'xyz');
+    if (data) return { source: 'trade[xyz]', data };
+
+    return { source: null, data: null };
+}
+
+function renderBasketChips() {
+    const container = document.getElementById('btc-basket-ticker-list');
+    if (!container) return;
+    container.innerHTML = '';
+    basketTickers.forEach((info, ticker) => {
+        const chip = document.createElement('span');
+        chip.className = 'basket-chip' + (info.error ? ' failed' : (info.data ? '' : ' pending'));
+        const sourceText = info.error ? 'not found' : (info.data ? info.source : 'loading…');
+        chip.innerHTML = `${ticker} <span class="basket-chip-source">${sourceText}</span>`;
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = '✕';
+        removeBtn.addEventListener('click', () => {
+            basketTickers.delete(ticker);
+            renderBasketChips();
+            loadBtcBasketChart();
+        });
+        chip.appendChild(removeBtn);
+        container.appendChild(chip);
+    });
+}
+
+function populateBasketSuggestions() {
+    const datalist = document.getElementById('btc-basket-suggestions');
+    if (!datalist) return;
+    const names = (typeof xyzMarketsCache !== 'undefined' ? xyzMarketsCache.map(m => m.name) : []);
+    datalist.innerHTML = names.map(n => `<option value="${n}">`).join('');
+}
+
+function addBasketTicker(rawTicker) {
+    const ticker = rawTicker.trim().toUpperCase();
+    if (!ticker || basketTickers.has(ticker)) return;
+    basketTickers.set(ticker, { source: null, data: null, error: false });
+    renderBasketChips();
+    loadBtcBasketChart();
+}
+
 async function loadBtcBasketChart() {
-    populateBasketTickerList();
-    const tickers = Array.from(selectedBasketTickers);
     const days = parseInt(document.getElementById('btc-basket-range')?.value || '90');
+    if (basketTickers.size === 0) {
+        setBtcBasketStatus('add a ticker above to compare against BTC');
+        return;
+    }
     setBtcBasketStatus('loading…');
 
     try {
-        const btcRes = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=${days <= 30 ? '4h' : (days <= 90 ? '12h' : '1d')}&limit=500`);
+        const btcRes = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=BTCUSDT&interval=${intervalForDays(days)}&limit=500`);
         const btcRows = btcRes.ok ? await btcRes.json() : [];
         const btcSeries = btcRows.map(r => [r[6], parseFloat(r[4])]);
 
-        const tickerSeries = await Promise.all(tickers.map(async (t, i) => ({
-            name: t, color: BASKET_COLORS[i % BASKET_COLORS.length], data: await fetchXyzCandles(t, days)
-        })));
+        const tickers = Array.from(basketTickers.keys());
+        await Promise.all(tickers.map(async (ticker) => {
+            const { source, data } = await resolveTickerCandles(ticker, days);
+            basketTickers.set(ticker, { source, data, error: !data });
+        }));
+        renderBasketChips();
 
         const rebase = (series) => {
             if (!series || series.length === 0) return null;
@@ -503,10 +541,16 @@ async function loadBtcBasketChart() {
         };
 
         const series = [{ name: 'BTC', type: 'line', data: rebase(btcSeries), color: '#f7931a', marker: { enabled: false }, lineWidth: 2, zIndex: 3 }];
-        tickerSeries.forEach(s => {
-            const r = rebase(s.data);
-            if (r) series.push({ name: `xyz:${s.name}`, type: 'line', data: r, color: s.color, marker: { enabled: false } });
+        let i = 0;
+        basketTickers.forEach((info, ticker) => {
+            if (info.data) {
+                const r = rebase(info.data);
+                if (r) series.push({ name: ticker, type: 'line', data: r, color: BASKET_COLORS[i % BASKET_COLORS.length], marker: { enabled: false } });
+            }
+            i++;
         });
+
+        const failedCount = Array.from(basketTickers.values()).filter(v => v.error).length;
 
         const options = {
             chart: { animation: false, backgroundColor: 'transparent' },
@@ -521,12 +565,12 @@ async function loadBtcBasketChart() {
 
         if (!btcBasketChart) {
             btcBasketChart = Highcharts.chart('btc-basket-chart', options);
-            attachChartWatermark(btcBasketChart, 'Binance klines, trade[xyz] via Hyperliquid');
+            attachChartWatermark(btcBasketChart, 'Binance / Hyperliquid / trade[xyz]');
         } else {
             btcBasketChart.update(options, true, true);
         }
 
-        setBtcBasketStatus('updated ' + new Date().toLocaleTimeString());
+        setBtcBasketStatus('updated ' + new Date().toLocaleTimeString() + (failedCount ? ` · ${failedCount} ticker(s) not found on any source` : ''), failedCount > 0);
     } catch (e) {
         setBtcBasketStatus('failed — ' + e.message, true);
     }
@@ -534,10 +578,18 @@ async function loadBtcBasketChart() {
 
 /* --------------------------------- INIT ---------------------------------- */
 
+let basketInitialized = false;
+
 window.initTradfiTab = function () {
     loadBinanceTradFi();
     loadXyzMarkets().then(() => {
         loadMacroSignals();
+        populateBasketSuggestions();
+        if (!basketInitialized) {
+            basketInitialized = true;
+            DEFAULT_BASKET_TICKERS.forEach(t => basketTickers.set(t, { source: null, data: null, error: false }));
+            renderBasketChips();
+        }
         loadBtcBasketChart();
     });
     renderEventChips();
@@ -549,6 +601,18 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('tradfi-macro-refresh-btn')?.addEventListener('click', loadMacroSignals);
     document.getElementById('btc-basket-refresh-btn')?.addEventListener('click', loadBtcBasketChart);
     document.getElementById('btc-basket-range')?.addEventListener('change', loadBtcBasketChart);
+    document.getElementById('btc-basket-add-btn')?.addEventListener('click', () => {
+        const input = document.getElementById('btc-basket-search');
+        if (!input || !input.value.trim()) return;
+        addBasketTicker(input.value);
+        input.value = '';
+    });
+    document.getElementById('btc-basket-search')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('btc-basket-add-btn')?.click();
+        }
+    });
 });
 
 document.addEventListener('DOMContentLoaded', function () {
