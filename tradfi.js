@@ -536,13 +536,19 @@ async function loadBtcBasketChart() {
 
 window.initTradfiTab = function () {
     loadBinanceTradFi();
-    loadXyzMarkets().then(loadMacroSignals);
+    loadXyzMarkets().then(() => {
+        loadMacroSignals();
+        loadBtcBasketChart();
+    });
     renderEventChips();
     if (btfChart) btfChart.reflow();
+    if (btcBasketChart) btcBasketChart.reflow();
 };
 
 document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('tradfi-macro-refresh-btn')?.addEventListener('click', loadMacroSignals);
+    document.getElementById('btc-basket-refresh-btn')?.addEventListener('click', loadBtcBasketChart);
+    document.getElementById('btc-basket-range')?.addEventListener('change', loadBtcBasketChart);
 });
 
 document.addEventListener('DOMContentLoaded', function () {
