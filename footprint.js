@@ -37,6 +37,10 @@
     let currentSymbol = 'BTCUSDT';
 
     let cvdChart = null;
+    let klineWs = null;
+    let klineChart = null;
+    let klineCandles = new Map(); // openTime -> {o,h,l,c}
+    const KLINE_CHART_MAX = 100;
 
     function setStatus(text, cls) {
         const el = document.getElementById('footprint-status');
@@ -97,6 +101,7 @@
             renderTimer = null;
             renderGrid();
             renderCvdChart();
+            renderKlineChart();
         }, RENDER_THROTTLE_MS);
     }
 
@@ -182,6 +187,89 @@
             if (typeof attachChartWatermark === 'function') attachChartWatermark(cvdChart);
         } else {
             cvdChart.update(options, true, true);
+        }
+    }
+
+    function binanceKlineInterval(ms) {
+        // Binance has no 30s kline; use the closest supported interval.
+        if (ms <= 30000) return '1m';
+        if (ms <= 60000) return '1m';
+        if (ms <= 300000) return '5m';
+        return '15m';
+    }
+
+    function renderKlineChart() {
+        if (typeof Highcharts === 'undefined') return;
+        const container = document.getElementById('footprint-candle-chart');
+        if (!container) return;
+
+        const sorted = Array.from(klineCandles.entries()).sort((a, b) => a[0] - b[0]).slice(-KLINE_CHART_MAX);
+        const data = sorted.map(([t, c]) => [t, c.o, c.h, c.l, c.c]);
+        if (data.length === 0) return;
+
+        const options = {
+            chart: { animation: false, backgroundColor: 'transparent' },
+            title: { text: null },
+            credits: { enabled: false },
+            legend: { enabled: false },
+            xAxis: { type: 'datetime', labels: { style: { fontSize: '9px', color: '#9aa4b5' } }, lineColor: '#232838' },
+            yAxis: { title: { text: null }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130' },
+            tooltip: { valueDecimals: 4 },
+            series: [{
+                name: currentSymbol,
+                type: 'candlestick',
+                data,
+                color: '#ef5350',
+                upColor: '#3ecf8e',
+                lineColor: '#ef5350',
+                upLineColor: '#3ecf8e'
+            }]
+        };
+
+        if (!klineChart) {
+            klineChart = Highcharts.chart('footprint-candle-chart', options);
+            if (typeof attachChartWatermark === 'function') attachChartWatermark(klineChart, 'Binance Futures Kline WebSocket');
+        } else {
+            klineChart.update(options, true, true);
+        }
+    }
+
+    function connectKlineStream(symbol, intervalMs) {
+        disconnectKlineStream();
+        klineCandles = new Map();
+        const klineInterval = binanceKlineInterval(intervalMs);
+        const url = `wss://fstream.binance.com/ws/${symbol.toLowerCase()}@kline_${klineInterval}`;
+
+        try {
+            klineWs = new WebSocket(url);
+        } catch (e) {
+            return;
+        }
+
+        klineWs.onmessage = (event) => {
+            let msg;
+            try { msg = JSON.parse(event.data); } catch (e) { return; }
+            const k = msg?.k;
+            if (!k) return;
+            klineCandles.set(k.t, { o: parseFloat(k.o), h: parseFloat(k.h), l: parseFloat(k.l), c: parseFloat(k.c) });
+            if (klineCandles.size > KLINE_CHART_MAX) {
+                const oldest = Math.min(...klineCandles.keys());
+                klineCandles.delete(oldest);
+            }
+            scheduleRender();
+        };
+
+        klineWs.onclose = () => {
+            if (!manuallyStopped) {
+                setTimeout(() => connectKlineStream(symbol, intervalMs), 3000);
+            }
+        };
+    }
+
+    function disconnectKlineStream() {
+        if (klineWs) {
+            try { klineWs.close(); } catch (e) { /* ignore */ }
+            klineWs = null;
         }
     }
 
