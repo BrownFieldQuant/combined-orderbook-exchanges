@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lowcost Research — Free Multi-Exchange Trading Terminal</title>
+<meta name="description" content="Free, browser-only research terminal: combined order book across 30 exchanges, quant analytics, asset comparison, on-chain data, TradFi perpetuals, footprint charts, and Fed liquidity — no account needed.">
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --panel: #11151d;
+    --panel-alt: #171b26;
+    --border: #202536;
+    --text: #e7ebf1;
+    --dim: #97a1b3;
+    --muted: #5f6b80;
+    --accent: #c9975a;
+    --accent-dim: rgba(201, 151, 90, 0.14);
+    --positive: #3ecf8e;
+    --negative: #ef5350;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+  a { color: inherit; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+
+  .grid-bg {
+    position: fixed; inset: 0; z-index: -1;
+    background-image:
+      linear-gradient(rgba(201,151,90,0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,151,90,0.045) 1px, transparent 1px);
+    background-size: 42px 42px;
+    mask-image: radial-gradient(ellipse 70% 50% at 50% 0%, black 40%, transparent 100%);
+  }
+
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(11,14,20,0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+  }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 700; letter-spacing: 0.3px; }
+  .brand img { width: 26px; height: 26px; }
+  .brand .sub { color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 1.5px; margin-left: 2px; }
+  .nav-links { display: flex; gap: 28px; font-size: 14px; color: var(--dim); }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta {
+    background: var(--accent); color: #191008; font-weight: 700; font-size: 13px;
+    padding: 9px 18px; border-radius: 5px; text-decoration: none; white-space: nowrap;
+  }
+  @media (max-width: 760px) { .nav-links { display: none; } }
+
+  header.hero { padding: 88px 0 64px; }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--accent); display: flex; align-items: center; gap: 8px; margin-bottom: 22px;
+  }
+  .eyebrow::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--positive); box-shadow: 0 0 8px var(--positive); animation: pulse 1.8s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+  h1 {
+    font-size: clamp(34px, 5.4vw, 60px); line-height: 1.05; margin: 0 0 22px; font-weight: 800; letter-spacing: -1.2px;
+    max-width: 820px;
+  }
+  h1 em { color: var(--accent); font-style: normal; }
+  .hero-sub { font-size: 18px; color: var(--dim); max-width: 620px; margin: 0 0 34px; }
+  .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 28px; }
+  .btn-primary {
+    background: var(--accent); color: #191008; font-weight: 700; font-size: 15px;
+    padding: 13px 26px; border-radius: 6px; text-decoration: none; display: inline-block;
+    box-shadow: 0 0 0 1px rgba(201,151,90,0.3), 0 8px 24px rgba(201,151,90,0.18);
+  }
+  .btn-secondary {
+    background: transparent; color: var(--text); font-weight: 600; font-size: 15px;
+    padding: 13px 26px; border-radius: 6px; text-decoration: none; border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--accent); }
+  .hero-meta { font-size: 13px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  .ticker-shell {
+    margin-top: 56px; border: 1px solid var(--border); border-radius: 10px; background: var(--panel);
+    overflow: hidden;
+  }
+  .ticker-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--panel-alt);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+  }
+  .ticker-dots { display: flex; gap: 6px; }
+  .ticker-dots span { width: 9px; height: 9px; border-radius: 50%; background: var(--border); }
+  #ticker-row { display: flex; gap: 0; overflow-x: auto; scrollbar-width: none; }
+  #ticker-row::-webkit-scrollbar { display: none; }
+  .tick-cell { flex: 1 0 140px; padding: 16px 18px; border-right: 1px solid var(--border); font-family: 'JetBrains Mono', monospace; }
+  .tick-cell:last-child { border-right: none; }
+  .tick-sym { font-size: 11px; color: var(--muted); letter-spacing: 0.5px; }
+  .tick-price { font-size: 17px; font-weight: 700; margin-top: 3px; }
+  .tick-chg { font-size: 12px; margin-top: 3px; }
+  .up { color: var(--positive); } .down { color: var(--negative); }
+
+  section { padding: 84px 0; border-top: 1px solid var(--border); }
+  .section-head { max-width: 620px; margin-bottom: 48px; }
+  .section-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .section-title { font-size: clamp(24px, 3.2vw, 34px); font-weight: 800; letter-spacing: -0.6px; margin: 0 0 12px; }
+  .section-desc { color: var(--dim); font-size: 16px; }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .step { border: 1px solid var(--border); border-radius: 10px; padding: 26px; background: var(--panel); position: relative; }
+  .step-num { font-family: 'JetBrains Mono', monospace; color: var(--accent); font-size: 13px; margin-bottom: 14px; }
+  .step h3 { font-size: 17px; margin: 0 0 8px; }
+  .step p { color: var(--dim); font-size: 14px; margin: 0; }
+  @media (max-width: 800px) { .steps { grid-template-columns: 1fr; } }
+
+  .feature-groups { display: flex; flex-direction: column; gap: 40px; }
+  .fgroup-label { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent); letter-spacing: 1px; margin-bottom: 14px; }
+  .fgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .fcard { background: var(--panel); padding: 20px; }
+  .fcard h4 { font-size: 14.5px; margin: 0 0 8px; }
+  .fcard p { font-size: 13px; color: var(--dim); margin: 0; }
+  @media (max-width: 900px) { .fgrid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .fgrid { grid-template-columns: 1fr; } }
+
+  .sources { display: flex; flex-wrap: wrap; gap: 10px; }
+  .source-chip { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--dim); border: 1px solid var(--border); border-radius: 20px; padding: 8px 16px; background: var(--panel); }
+
+  .faq-item { border-top: 1px solid var(--border); padding: 20px 0; }
+  .faq-item:last-child { border-bottom: 1px solid var(--border); }
+  .faq-q { display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-weight: 600; font-size: 15.5px; }
+  .faq-q::after { content: '+'; color: var(--accent); font-size: 22px; font-weight: 400; transition: transform 0.2s; }
+  .faq-item.open .faq-q::after { transform: rotate(45deg); }
+  .faq-a { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; color: var(--dim); font-size: 14.5px; }
+  .faq-item.open .faq-a { max-height: 240px; margin-top: 12px; }
+
+  .cta-band { text-align: center; padding: 90px 0; border-top: 1px solid var(--border); }
+  .cta-band h2 { font-size: clamp(26px, 4vw, 38px); font-weight: 800; letter-spacing: -0.8px; margin: 0 0 16px; }
+  .cta-band p { color: var(--dim); margin: 0 0 30px; }
+
+  footer { border-top: 1px solid var(--border); padding: 40px 0; }
+  footer .wrap { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  footer .foot-left { font-size: 13px; color: var(--muted); }
+  footer .foot-links { display: flex; gap: 20px; font-size: 13px; color: var(--dim); }
+  footer .foot-links a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<nav>
+  <div class="wrap">
+    <div class="brand"><img src="logo.png" alt=""> Lowcost Research <span class="sub">TERMINAL</span></div>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#faq">FAQ</a>
+    </div>
+    <a class="nav-cta" href="index.html">Launch app →</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Live · 8 dashboards · No account</div>
+    <h1>Research infrastructure<br>for people who <em>trade</em>.</h1>
+    <p class="hero-sub">A free, browser-only terminal: order book combined across 30 exchanges, quant signals, asset comparison, on-chain data, TradFi perpetuals, real-time footprint charts, and Fed liquidity — all in one tab.</p>
+    <div class="hero-ctas">
+      <a class="btn-primary" href="index.html">Open the terminal →</a>
+      <a class="btn-secondary" href="#features">See what's inside</a>
+    </div>
+    <div class="hero-meta">// connects directly to exchange public APIs — nothing installed, nothing signed up for</div>
+
+    <div class="ticker-shell">
+      <div class="ticker-head">
+        <span>LIVE — BINANCE</span>
+        <div class="ticker-dots"><span></span><span></span><span></span></div>
+      </div>
+      <div id="ticker-row">
+        <div class="tick-cell"><div class="tick-sym">BTCUSDT</div><div class="tick-price">—</div><div class="tick-chg">—</div></div>
+        <div class="tick-cell"><div class="tick-sym">ETHUSDT</div><div class="tick-price">—</div><div class="tick-chg">—</div></div>
+        <div class="tick-cell"><div class="tick-sym">XAUUSDT (Gold)</div><div class="tick-price">—</div><div class="tick-chg">—</div></div>
+        <div class="tick-cell"><div class="tick-sym">CLUSDT (WTI Oil)</div><div class="tick-price">—</div><div class="tick-chg">—</div></div>
+        <div class="tick-cell"><div class="tick-sym">SOLUSDT</div><div class="tick-price">—</div><div class="tick-chg">—</div></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-eyebrow">How it works</div>
+      <div class="section-title">Everything runs in your browser</div>
+      <div class="section-desc">Direct calls to exchange and data-provider public APIs — no backend sitting in between, no account database, nothing stored anywhere but this browser.</div>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num mono">01 / SOURCES</div>
+        <h3>Exchange &amp; data feeds</h3>
+        <p>Binance, Hyperliquid, Bybit, OKX, Bitget, Coinbase, Kraken, and 20+ more — plus FRED, Etherscan, mempool.space, and CryptoCompare for macro and on-chain data.</p>
+      </div>
+      <div class="step">
+        <div class="step-num mono">02 / YOUR BROWSER</div>
+        <h3>Fetched live, client-side</h3>
+        <p>REST and WebSocket calls run directly from your tab. Any keys you add (Etherscan, FRED) stay in your browser's local storage only.</p>
+      </div>
+      <div class="step">
+        <div class="step-num mono">03 / YOUR ANALYSIS</div>
+        <h3>8 dashboards, one screen</h3>
+        <p>Order book, quant signals, comparisons, on-chain, news, TradFi, footprint, and macro liquidity — switch tabs, nothing reloads.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-eyebrow">Features</div>
+      <div class="section-title">What's inside</div>
+      <div class="section-desc">Eight dashboards covering order flow, quant research, and macro context — built for actually researching a position, not just watching a price.</div>
+    </div>
+
+    <div class="feature-groups">
+      <div>
+        <div class="fgroup-label mono">// ORDER FLOW</div>
+        <div class="fgrid">
+          <div class="fcard"><h4>Combined order book</h4><p>Bids &amp; asks aggregated live across up to 30 exchanges for one symbol.</p></div>
+          <div class="fcard"><h4>Heatmap ladder</h4><p>Price-level depth ladder with intensity bars — spot walls at a glance.</p></div>
+          <div class="fcard"><h4>Footprint charts</h4><p>Buy/sell volume per price level per candle, live from Binance trade WebSocket, with CVD.</p></div>
+          <div class="fcard"><h4>Slippage &amp; alerts</h4><p>Slippage calculator against live depth, plus price/spread/arbitrage/liquidity alerts.</p></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="fgroup-label mono">// QUANT RESEARCH</div>
+        <div class="fgrid">
+          <div class="fcard"><h4>Quant signals</h4><p>Microprice, spread z-score, realized volatility, order flow imbalance.</p></div>
+          <div class="fcard"><h4>RSI / MACD / Bollinger</h4><p>Standard technical indicators computed live from exchange kline data.</p></div>
+          <div class="fcard"><h4>Asset compare</h4><p>Rebased relative performance, volatility, and a return correlation matrix across symbols.</p></div>
+          <div class="fcard"><h4>Watchlist</h4><p>Track a custom symbol list with live best bid/ask and spread.</p></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="fgroup-label mono">// MACRO &amp; ON-CHAIN</div>
+        <div class="fgrid">
+          <div class="fcard"><h4>On-chain &amp; derivatives</h4><p>Funding rates, open interest, BTC network stats, ETH gas &amp; supply.</p></div>
+          <div class="fcard"><h4>TradFi perpetuals</h4><p>Gold, silver, oil, nat gas via Binance — plus stocks and FX via trade[xyz] on Hyperliquid.</p></div>
+          <div class="fcard"><h4>Fed liquidity</h4><p>Balance sheet, M2, reverse repo, SOFR from FRED — plus a real event-study calendar.</p></div>
+          <div class="fcard"><h4>News &amp; sentiment</h4><p>Live crypto headlines and the Fear &amp; Greed Index, updated on demand.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="sources-section">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-eyebrow">Data sources</div>
+      <div class="section-title">Real data, named honestly</div>
+      <div class="section-desc">Every number traces back to a real public source — no mocked figures, no scraped news pretending to be a live feed.</div>
+    </div>
+    <div class="sources">
+      <span class="source-chip">Binance</span>
+      <span class="source-chip">Hyperliquid</span>
+      <span class="source-chip">trade[xyz] (HIP-3)</span>
+      <span class="source-chip">FRED</span>
+      <span class="source-chip">Etherscan</span>
+      <span class="source-chip">mempool.space</span>
+      <span class="source-chip">CryptoCompare</span>
+      <span class="source-chip">alternative.me</span>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="section-eyebrow">FAQ</div>
+      <div class="section-title">Common questions</div>
+    </div>
+    <div id="faq-list">
+      <div class="faq-item">
+        <div class="faq-q">Is it free? Do I need an account?</div>
+        <div class="faq-a">Yes, 100% free, no account or sign-up. Everything runs client-side in your browser.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Where does the data come from?</div>
+        <div class="faq-a">Direct public APIs from each exchange or provider — Binance, Hyperliquid, FRED, Etherscan, mempool.space, CryptoCompare, and alternative.me. No news scraping, no mocked numbers.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Why do some tabs ask for an API key?</div>
+        <div class="faq-a">Etherscan and FRED require a free personal key for their APIs. It's stored only in your browser's local storage and never sent anywhere else.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Some exchanges show no data — why?</div>
+        <div class="faq-a">A few exchanges don't allow direct browser requests (CORS). Installing a CORS browser extension resolves this for those specific exchanges.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Is this financial advice?</div>
+        <div class="faq-a">No. This is a research and data tool. Nothing here is a recommendation to buy, sell, or hold any asset.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Does it work on mobile?</div>
+        <div class="faq-a">Yes, in a modern mobile browser, though the dashboards are built with a desktop research workflow in mind.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="cta-band">
+  <div class="wrap">
+    <h2>Open the terminal, look at real data.</h2>
+    <p>No install, no account, no cost.</p>
+    <a class="btn-primary" href="index.html">Launch Lowcost Research →</a>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-left">Lowcost Research — data as of your last visit · Not financial advice</div>
+    <div class="foot-links">
+      <a href="index.html">Terminal</a>
+      <a href="#features">Features</a>
+      <a href="#faq">FAQ</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    const symbols = ['BTCUSDT', 'ETHUSDT', 'XAUUSDT', 'CLUSDT', 'SOLUSDT'];
+    const cells = document.querySelectorAll('.tick-cell');
+    symbols.forEach(async (sym, i) => {
+      try {
+        const res = await fetch(`https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${sym}`);
+        if (!res.ok) return;
+        const d = await res.json();
+        const price = parseFloat(d.lastPrice);
+        const chg = parseFloat(d.priceChangePercent);
+        const cell = cells[i];
+        if (!cell) return;
+        cell.querySelector('.tick-price').textContent = price.toLocaleString(undefined, { maximumFractionDigits: price > 100 ? 2 : 4 });
+        const chgEl = cell.querySelector('.tick-chg');
+        chgEl.textContent = (chg >= 0 ? '+' : '') + chg.toFixed(2) + '%';
+        chgEl.className = 'tick-chg ' + (chg >= 0 ? 'up' : 'down');
+      } catch (e) { /* leave placeholder */ }
+    });
+  })();
+
+  document.querySelectorAll('.faq-item').forEach(item => {
+    item.querySelector('.faq-q').addEventListener('click', () => {
+      const wasOpen = item.classList.contains('open');
+      document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+      if (!wasOpen) item.classList.add('open');
+    });
+  });
+</script>
+</body>
+</html>
