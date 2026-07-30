@@ -446,6 +446,27 @@
             --accent: #c9975a;
             --accent-rgb: 201, 151, 90;
         }
+
+        /* Smooth theme switching — matches landing page feel.
+           Scoped to color/background/border so charts, canvases and
+           WebSocket-driven live numbers are never affected. */
+        html, body,
+        #controls, #zoom-container, #config-container, #auto-refresh-container,
+        #add-symbol-container,
+        button, select, input[type="text"], input[type="number"], input[type="file"],
+        a, .panel, [class*="panel"], [class*="card"], [class*="tab"], table, th, td {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        button:hover, a:hover, select:hover {
+            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s cubic-bezier(.22,1,.36,1);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.001ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.001ms !important;
+            }
+        }
         html[data-theme="midnight"] {
             --accent: #5aa9e6;
             --accent-rgb: 90, 169, 230;
