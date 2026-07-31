@@ -2593,6 +2593,146 @@
         @media (max-width: 900px) {
             #rd-masthead { flex-direction: column; align-items: flex-start; gap: 4px; }
         }
+        /* ============================================================
+           PER-TAB DEEP STYLING — research-report treatment applied to
+           every tab (Order Book, Quant, Compare, On-Chain, News, TradFi,
+           Footprint, Macro). Pure CSS, no ids/classes removed.
+           ============================================================ */
+
+        /* Every research "exhibit" card gets a numbered label + serif
+           small-caps title bar, reset per tab so numbering starts at 1
+           on every tab. */
+        .tab-view { counter-reset: rd-exhibit; }
+        .quant-cell {
+            position: relative;
+            padding-top: 30px !important;
+        }
+        .quant-cell-title {
+            counter-increment: rd-exhibit;
+            font-family: var(--rd-sans) !important;
+            font-size: 10px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.75;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid var(--rd-hair);
+        }
+        .quant-cell-title::before {
+            content: "EXHIBIT " counter(rd-exhibit) " — ";
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        /* Tab header bars (Quant / Compare) — report section header */
+        #quant-header-bar, #compare-header-bar {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+            padding-bottom: 10px; margin-bottom: 4px;
+            border-bottom: 2px solid var(--accent);
+            font-family: var(--rd-serif);
+        }
+        #quant-header-bar b, #compare-header-bar b { font-size: 16px; font-weight: 700; }
+
+        /* Note / disclosure text — footnote style used on Compare,
+           On-Chain, TradFi, Footprint, Macro tabs */
+        #compare-note, #onchain-note, #tradfi-note, #footprint-note, #macro-liq-note,
+        #quant-analytics-note, #eth-key-note, #fred-key-note, #event-study-legend {
+            font-family: var(--rd-sans) !important;
+            font-size: 11px !important;
+            font-style: italic;
+            opacity: 0.65;
+            border-left: 2px solid var(--rd-hair);
+            padding: 4px 0 4px 12px;
+            margin: 6px 0 16px;
+            line-height: 1.5;
+        }
+
+        /* Range / interval segmented controls (Quant range, Compare range) */
+        #quant-range-buttons, #compare-range-buttons {
+            display: inline-flex; border: 1px solid var(--rd-hair-soft); border-radius: 3px; overflow: hidden;
+        }
+        #quant-range-buttons button, #compare-range-buttons button {
+            border: none !important; border-right: 1px solid var(--rd-hair-soft) !important;
+            border-radius: 0 !important; background: transparent !important;
+            font-family: var(--rd-sans) !important; font-size: 10.5px !important; padding: 5px 11px !important;
+        }
+        #quant-range-buttons button:last-child, #compare-range-buttons button:last-child { border-right: none !important; }
+        #quant-range-buttons button.active, #compare-range-buttons button.active {
+            background: var(--accent) !important; color: #191008 !important; font-weight: 700 !important;
+        }
+
+        /* Ledger-style rows (quant-row) — label ..... value, like a
+           research figure list rather than a plain flex row */
+        .quant-row {
+            font-family: var(--rd-mono) !important;
+            border-bottom: 1px dotted var(--rd-hair-soft) !important;
+        }
+        .quant-row span:first-child { font-family: var(--rd-sans) !important; font-size: 10.5px !important; letter-spacing: 0.2px; }
+        .quant-row span:last-child { font-size: 12px !important; }
+
+        /* Data tables — zebra rows, serif caption feel */
+        #comparison-table, #watchlist-table, #compare-corr-table, #event-study-table, #footprint-table {
+            width: 100%;
+        }
+        #comparison-table tbody tr:nth-child(even) td,
+        #watchlist-table tbody tr:nth-child(even) td,
+        #event-study-table tbody tr:nth-child(even) td {
+            background: rgba(201,151,90,0.045) !important;
+        }
+        #comparison-table th, #watchlist-table th, #event-study-table th {
+            border-bottom: 2px solid var(--accent) !important;
+        }
+        #event-study-table td, #event-study-table th { padding: 6px 10px !important; }
+
+        /* Order Book tab: quant sidebar reads like a research sidebar
+           ledger with a masthead-style label */
+        #quant-panel b { font-family: var(--rd-serif); font-size: 13px; }
+        #comparison-panel b, #ladder-panel b, #depth-panel b, #history-panel b,
+        #alerts-panel b, #watchlist-panel b, #slippage-panel b, #export-panel b {
+            font-family: var(--rd-serif); font-size: 13px; display: block; margin-bottom: 8px;
+        }
+
+        /* News tab — Fear & Greed gauge as an editorial pull-figure */
+        #fng-current-row { display: flex; align-items: baseline; gap: 14px; }
+        #fng-gauge-value { font-family: var(--rd-serif) !important; font-size: 40px !important; font-weight: 700; color: var(--accent); }
+        #fng-gauge-label { font-family: var(--rd-sans) !important; text-transform: uppercase; letter-spacing: 1px; font-size: 11px; opacity: 0.7; }
+        #news-list { font-family: var(--rd-sans) !important; }
+
+        /* On-chain / TradFi / Macro: form rows (key inputs, selects)
+           laid out like a filings desk toolbar */
+        #eth-key-row, #fred-key-row, #derivatives-controls, #binance-tradfi-controls,
+        #footprint-controls, #event-study-controls {
+            display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+            padding: 8px 0 14px;
+        }
+
+        /* Footprint tab table — dense trading-desk grid */
+        #footprint-table th, #footprint-table td {
+            font-family: var(--rd-mono) !important; font-size: 10.5px !important;
+        }
+
+        /* versionInfo strip — quieten to a footer credit line */
+        #versionInfo {
+            font-family: var(--rd-sans) !important;
+            font-size: 9.5px !important;
+            opacity: 0.5;
+            background: var(--rd-navy) !important;
+            padding: 3px 8px !important;
+            border-top-left-radius: 3px;
+        }
+        html[data-theme="light"] #versionInfo { background: var(--rd-cream-2) !important; }
+
+        /* Macro tab: selected event-study row + terminal status line */
+        #event-study-table tbody tr { cursor: pointer; }
+        #event-study-table tbody tr.rd-row-active td {
+            background: rgba(201,151,90,0.14) !important;
+            box-shadow: inset 2px 0 0 var(--accent);
+        }
+        #fred-status, #event-study-status, #inflation-exp-status {
+            font-family: var(--rd-mono) !important;
+            letter-spacing: 0.2px;
+        }
     </style>
 </head>
 <body>
