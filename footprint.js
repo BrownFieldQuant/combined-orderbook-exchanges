@@ -18,7 +18,7 @@
 */
 
 (function () {
-    const MAX_CANDLES = 20;
+    const MAX_CANDLES = 200;
     const RENDER_THROTTLE_MS = 700;
 
     let ws = null;
