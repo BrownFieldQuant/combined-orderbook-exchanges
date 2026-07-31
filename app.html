@@ -2453,6 +2453,146 @@
                 grid-template-columns: 1fr;
             }
         }
+        /* ============================================================
+           RESEARCH DESK SKIN — institutional sell-side aesthetic.
+           Pure CSS override layer (loaded last = wins on cascade).
+           Nothing here renames/removes an id, class or tab — every
+           element below still exists and works exactly as before.
+           ============================================================ */
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+        :root {
+            --rd-navy: #0a1628;
+            --rd-navy-2: #0f2036;
+            --rd-navy-3: #16273f;
+            --rd-hair: rgba(201,151,90,0.16);
+            --rd-hair-soft: rgba(255,255,255,0.07);
+            --rd-cream: #f6f3ea;
+            --rd-cream-2: #efe9da;
+            --rd-ink: #1c1a15;
+            --rd-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+            --rd-sans: 'Inter', -apple-system, sans-serif;
+            --rd-mono: 'IBM Plex Mono', 'Consolas', 'SFMono-Regular', monospace;
+        }
+
+        html[data-theme="dark"] html, html[data-theme="dark"] body,
+        html[data-theme="midnight"] html, html[data-theme="midnight"] body,
+        html[data-theme="matrix"] html, html[data-theme="matrix"] body,
+        html[data-theme="crimson"] html, html[data-theme="crimson"] body,
+        html[data-theme="dark"] body, html[data-theme="midnight"] body,
+        html[data-theme="matrix"] body, html[data-theme="crimson"] body {
+            background: var(--rd-navy) !important;
+            color: #d9dee7 !important;
+            font-family: var(--rd-mono) !important;
+        }
+        html[data-theme="light"] body {
+            background: var(--rd-cream) !important;
+            color: var(--rd-ink) !important;
+            font-family: var(--rd-mono) !important;
+        }
+
+        /* Masthead */
+        #rd-masthead {
+            display: flex; align-items: baseline; justify-content: space-between;
+            padding: 14px 4px 12px; margin-bottom: 10px;
+            border-bottom: 2px solid var(--accent);
+            font-family: var(--rd-serif);
+        }
+        #rd-masthead .rd-title {
+            font-size: 20px; font-weight: 700; letter-spacing: 0.3px;
+            color: inherit;
+        }
+        #rd-masthead .rd-title span { color: var(--accent); font-style: italic; }
+        #rd-masthead .rd-meta {
+            font-family: var(--rd-sans); font-size: 10.5px; letter-spacing: 1.2px; text-transform: uppercase;
+            opacity: 0.55;
+        }
+
+        /* Panels: hairline institutional borders, no glow */
+        html[data-theme="dark"] #alerts-panel, html[data-theme="dark"] #comparison-panel,
+        html[data-theme="dark"] #depth-panel, html[data-theme="dark"] #slippage-panel,
+        html[data-theme="dark"] #history-panel, html[data-theme="dark"] #watchlist-panel,
+        html[data-theme="dark"] #export-panel, html[data-theme="dark"] #ladder-panel,
+        html[data-theme="dark"] #quant-panel, html[data-theme="dark"] #orderbookchart,
+        html[data-theme="midnight"] #alerts-panel, html[data-theme="midnight"] #comparison-panel,
+        html[data-theme="midnight"] #depth-panel, html[data-theme="midnight"] #slippage-panel,
+        html[data-theme="midnight"] #history-panel, html[data-theme="midnight"] #watchlist-panel,
+        html[data-theme="midnight"] #export-panel, html[data-theme="midnight"] #ladder-panel,
+        html[data-theme="midnight"] #quant-panel, html[data-theme="midnight"] #orderbookchart,
+        html[data-theme="matrix"] #alerts-panel, html[data-theme="matrix"] #comparison-panel,
+        html[data-theme="matrix"] #depth-panel, html[data-theme="matrix"] #slippage-panel,
+        html[data-theme="matrix"] #history-panel, html[data-theme="matrix"] #watchlist-panel,
+        html[data-theme="matrix"] #export-panel, html[data-theme="matrix"] #ladder-panel,
+        html[data-theme="matrix"] #quant-panel, html[data-theme="matrix"] #orderbookchart,
+        html[data-theme="crimson"] #alerts-panel, html[data-theme="crimson"] #comparison-panel,
+        html[data-theme="crimson"] #depth-panel, html[data-theme="crimson"] #slippage-panel,
+        html[data-theme="crimson"] #history-panel, html[data-theme="crimson"] #watchlist-panel,
+        html[data-theme="crimson"] #export-panel, html[data-theme="crimson"] #ladder-panel,
+        html[data-theme="crimson"] #quant-panel, html[data-theme="crimson"] #orderbookchart {
+            background: var(--rd-navy-2) !important;
+            border: 1px solid var(--rd-hair-soft) !important;
+            border-top: 2px solid var(--rd-hair) !important;
+            border-radius: 2px !important;
+            box-shadow: none !important;
+        }
+        html[data-theme="light"] #alerts-panel, html[data-theme="light"] #comparison-panel,
+        html[data-theme="light"] #depth-panel, html[data-theme="light"] #slippage-panel,
+        html[data-theme="light"] #history-panel, html[data-theme="light"] #watchlist-panel,
+        html[data-theme="light"] #export-panel, html[data-theme="light"] #ladder-panel,
+        html[data-theme="light"] #quant-panel, html[data-theme="light"] #orderbookchart {
+            background: #ffffff !important;
+            border: 1px solid #e2ddd0 !important;
+            border-top: 2px solid var(--accent) !important;
+            border-radius: 2px !important;
+            box-shadow: 0 1px 3px rgba(60,50,30,0.06) !important;
+        }
+
+        /* Section labels — small caps, letter-spaced, sans-serif (report style) */
+        #quant-symbol-label, .ladder-header, #comparison-table th, #watchlist-table th {
+            font-family: var(--rd-sans) !important;
+            text-transform: uppercase !important;
+            letter-spacing: 0.9px !important;
+            font-size: 10.5px !important;
+            font-weight: 600 !important;
+        }
+
+        /* Tab bar → report section tabs */
+        #tab-bar {
+            border-bottom: 1px solid var(--rd-hair-soft);
+            padding-bottom: 0;
+            gap: 2px !important;
+        }
+        .tab-btn {
+            font-family: var(--rd-sans) !important;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            border: none !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            padding: 8px 14px !important;
+            position: relative;
+            transition: color 0.2s ease;
+        }
+        .tab-btn:hover { background: rgba(201,151,90,0.08) !important; }
+        .tab-btn.active {
+            color: var(--accent) !important;
+            border-bottom: 2px solid var(--accent) !important;
+            font-weight: 700 !important;
+        }
+
+        /* Buttons: quieter, institutional */
+        button, select, input[type="text"], input[type="number"] {
+            font-family: var(--rd-mono) !important;
+            border-radius: 2px !important;
+        }
+
+        /* Data tables: tighter hairlines, tabular alignment */
+        #comparison-table, #watchlist-table { border-collapse: collapse !important; }
+        #comparison-table td, #watchlist-table td { font-variant-numeric: tabular-nums; }
+
+        @media (max-width: 900px) {
+            #rd-masthead { flex-direction: column; align-items: flex-start; gap: 4px; }
+        }
     </style>
 </head>
 <body>
@@ -2464,6 +2604,19 @@
         <div id="loading-bar-track"><div id="loading-bar-fill"></div></div>
     </div>
     <div id="app-content">
+    <div id="rd-masthead">
+        <div class="rd-title">LOWCOST<span> RESEARCH</span> &nbsp;·&nbsp; GLOBAL MARKETS DESK</div>
+        <div class="rd-meta" id="rd-masthead-date"></div>
+    </div>
+    <script>
+        (function(){
+            var el = document.getElementById('rd-masthead-date');
+            if (el) {
+                var d = new Date();
+                el.textContent = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            }
+        })();
+    </script>
     <div id="tab-bar">
         <button class="tab-btn active" data-tab="orderbook">Order Book</button>
         <button class="tab-btn" data-tab="quant">Quant Analytics</button>
