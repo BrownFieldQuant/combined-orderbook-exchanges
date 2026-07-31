@@ -12,9 +12,7 @@
    Candle bucketing also follows their documented approach:
    candle_time = floor(tradeTime / intervalMs) * intervalMs
 
-   This is a from-scratch build against our own stack (not a port of
-   Cryexc, which is a compiled C++/Dear ImGui/WebAssembly app — a
-   completely different, non-portable tech stack). Scope is intentionally
+   This is a from-scratch build against our own stack. Scope is intentionally
    smaller: one exchange, no DOM ladder, no options flow, no cross-venue
    correlation, session-only (resets on reload).
 */
