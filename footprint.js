@@ -135,18 +135,31 @@
         headHtml += '</tr>';
         thead.innerHTML = headHtml;
 
-        // Body rows: one per price level
+        // Body rows: one per price level. Also track each candle's
+        // Point-of-Control (highest-volume price level) — a standard
+        // footprint/quant-desk convention — to highlight below.
+        const pocByCandle = new Map();
+        sortedCandleTimes.forEach(t => {
+            let bestLevel = null, bestVol = -1;
+            candles.get(t).levels.forEach((lvl, level) => {
+                const total = lvl.buy + lvl.sell;
+                if (total > bestVol) { bestVol = total; bestLevel = level; }
+            });
+            pocByCandle.set(t, bestLevel);
+        });
+
         let bodyHtml = '';
         sortedLevels.forEach(level => {
             bodyHtml += `<tr><td class="price-col">${level.toLocaleString()}</td>`;
             sortedCandleTimes.forEach(t => {
                 const lvl = candles.get(t).levels.get(level);
+                const isPoc = pocByCandle.get(t) === level;
                 if (!lvl) {
-                    bodyHtml += '<td>-</td>';
+                    bodyHtml += `<td${isPoc ? ' class="fp-poc"' : ''}>-</td>`;
                 } else {
                     const buyTxt = fmtVol(lvl.buy);
                     const sellTxt = fmtVol(lvl.sell);
-                    bodyHtml += `<td><span id="footprint-cell-buy">${buyTxt}</span> / <span id="footprint-cell-sell">${sellTxt}</span></td>`;
+                    bodyHtml += `<td${isPoc ? ' class="fp-poc"' : ''}><span class="footprint-cell-buy">${buyTxt}</span> / <span class="footprint-cell-sell">${sellTxt}</span></td>`;
                 }
             });
             bodyHtml += '</tr>';
