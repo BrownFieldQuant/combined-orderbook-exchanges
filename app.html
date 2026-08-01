@@ -3722,10 +3722,27 @@
                 <div class="quant-cell-title">TraderMap — Liquidation Map</div>
                 <div id="tradermap-embed-controls">
                     <button id="tradermap-embed-toggle-btn">Hide</button>
-                    <span id="tradermap-embed-note">TraderMap publishes an official embeddable widget system (tradermap.io/widgets) — the app page below may block framing since it isn't the dedicated widget path. If it shows blank, use their Widget Customizer to get a /widgets/ embed URL instead.</span>
+                    <span id="tradermap-embed-note">Confirmed embed path with the TraderMap owner: tradermap.io/widgets/&lt;feature-slug&gt;?theme=dark.</span>
                 </div>
-                <iframe id="tradermap-iframe" src="https://tradermap.io/liquidation-map" title="TraderMap Liquidation Map" loading="lazy"></iframe>
+                <iframe id="tradermap-iframe" src="https://tradermap.io/widgets/liquidation-map?theme=dark" title="TraderMap Liquidation Map" loading="lazy"></iframe>
             </div>
+
+            <div id="tradermap-trades-panel" class="quant-cell fp-grid-cell">
+                <div class="quant-cell-title">TraderMap — BTC Whale Trades</div>
+                <div id="tradermap-trades-controls">
+                    <button id="tradermap-trades-toggle-btn">Hide</button>
+                    <span id="tradermap-trades-note">Live whale trade feed on Binance/Bybit/Hyperliquid via TraderMap's official widget embed.</span>
+                </div>
+                <iframe id="tradermap-trades-iframe" src="https://tradermap.io/widgets/btc-trades?theme=dark" width="340" height="540" style="border-radius:8px; overflow:hidden;" title="TraderMap BTC Whale Trades" loading="lazy"></iframe>
+            </div>
+            <script>
+                document.getElementById('tradermap-trades-toggle-btn')?.addEventListener('click', function () {
+                    const iframe = document.getElementById('tradermap-trades-iframe');
+                    const hidden = iframe.style.display === 'none';
+                    iframe.style.display = hidden ? '' : 'none';
+                    this.textContent = hidden ? 'Hide' : 'Show';
+                });
+            </script>
 
             <div id="footprint-candle-panel" class="quant-cell fp-grid-cell">
                 <div class="quant-cell-title">Price — Binance Kline WebSocket</div>
