@@ -332,6 +332,157 @@ async function loadEarningsCalendar() {
     }
 }
 
+/* --------------------------- INSTITUTIONAL ACTIVITY ------------------------
+   Symbol-driven panel pulling several "alternative data" Finnhub endpoints
+   in parallel. Each sub-block fails independently — one endpoint being
+   gated behind a paid plan (common on Finnhub's free tier for some of
+   these) doesn't blank the whole panel, it just shows "unavailable" for
+   that block while the rest render normally.
+*/
+
+const setInstitutionalStatus = genericStatusSetter('institutional-status');
+
+function fmtCompact(n) {
+    if (n === null || n === undefined || !isFinite(n)) return '-';
+    const abs = Math.abs(n);
+    if (abs >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+    if (abs >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+    if (abs >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+    return String(n);
+}
+
+function unavailableRow(colspan, label) {
+    return `<tr><td colspan="${colspan}" style="opacity:0.5;">${label || 'unavailable — may require a paid Finnhub plan'}</td></tr>`;
+}
+
+async function loadInstitutionalActivity() {
+    const symbol = (document.getElementById('institutional-symbol-input')?.value || 'COIN').trim().toUpperCase();
+    if (!symbol) return;
+    setInstitutionalStatus(`loading ${symbol}…`);
+
+    const today = new Date();
+    const from1y = new Date(today); from1y.setUTCFullYear(from1y.getUTCFullYear() - 1);
+    const fmtDate = d => d.toISOString().slice(0, 10);
+
+    const [sentiment, insiderSent, insiderTx, ownership, congress, lobbying, press] = await Promise.allSettled([
+        finnhubGet('/news-sentiment', { symbol }),
+        finnhubGet('/stock/insider-sentiment', { symbol, from: fmtDate(from1y), to: fmtDate(today) }),
+        finnhubGet('/stock/insider-transactions', { symbol }),
+        finnhubGet('/institutional/ownership', { symbol, from: fmtDate(from1y), to: fmtDate(today) }),
+        finnhubGet('/stock/congressional-trading', { symbol, from: fmtDate(from1y), to: fmtDate(today) }),
+        finnhubGet('/stock/lobbying', { symbol, from: fmtDate(from1y), to: fmtDate(today) }),
+        finnhubGet('/press-releases', { symbol, from: fmtDate(from1y), to: fmtDate(today) })
+    ]);
+
+    const setCell = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+
+    // News sentiment
+    if (sentiment.status === 'fulfilled' && sentiment.value?.sentiment) {
+        const s = sentiment.value;
+        const bullish = (s.sentiment.bullishPercent * 100).toFixed(0);
+        const bearish = (s.sentiment.bearishPercent * 100).toFixed(0);
+        setCell('inst-news-sentiment', `<span class="quant-positive">Bullish ${bullish}%</span> / <span class="quant-negative">Bearish ${bearish}%</span> &nbsp;·&nbsp; Buzz ${(s.buzz?.buzz ?? 0).toFixed(2)}`);
+    } else {
+        setCell('inst-news-sentiment', '<span style="opacity:0.5;">unavailable</span>');
+    }
+
+    // Insider sentiment (MSPR — Monthly Share Purchase Ratio)
+    if (insiderSent.status === 'fulfilled' && Array.isArray(insiderSent.value?.data) && insiderSent.value.data.length > 0) {
+        const latest = insiderSent.value.data[insiderSent.value.data.length - 1];
+        const cls = latest.mspr >= 0 ? 'quant-positive' : 'quant-negative';
+        setCell('inst-insider-sentiment', `<span class="${cls}">MSPR ${latest.mspr?.toFixed(2)}</span> &nbsp;·&nbsp; net change ${fmtCompact(latest.change)} shares (${latest.year}-${String(latest.month).padStart(2, '0')})`);
+    } else {
+        setCell('inst-insider-sentiment', '<span style="opacity:0.5;">unavailable</span>');
+    }
+
+    // Insider transactions table
+    const insiderBody = document.querySelector('#inst-insider-table tbody');
+    if (insiderTx.status === 'fulfilled' && Array.isArray(insiderTx.value?.data) && insiderTx.value.data.length > 0) {
+        const rows = insiderTx.value.data.slice(0, 15);
+        insiderBody.innerHTML = rows.map(r => {
+            const cls = (r.change || 0) >= 0 ? 'quant-positive' : 'quant-negative';
+            return `<tr>
+                <td>${r.filingDate || '-'}</td>
+                <td>${r.name || '-'}</td>
+                <td class="${cls}">${(r.change || 0) >= 0 ? '+' : ''}${fmtCompact(r.change)}</td>
+                <td>${fmtCompact(r.share)}</td>
+                <td>${r.transactionPrice ? '$' + r.transactionPrice.toFixed(2) : '-'}</td>
+            </tr>`;
+        }).join('');
+    } else {
+        insiderBody.innerHTML = unavailableRow(5);
+    }
+
+    // Institutional ownership (13-F) table
+    const ownershipBody = document.querySelector('#inst-ownership-table tbody');
+    if (ownership.status === 'fulfilled' && Array.isArray(ownership.value?.ownership) && ownership.value.ownership.length > 0) {
+        const rows = ownership.value.ownership.slice(0, 15);
+        ownershipBody.innerHTML = rows.map(r => {
+            const cls = (r.change || 0) >= 0 ? 'quant-positive' : 'quant-negative';
+            return `<tr>
+                <td>${r.name || '-'}</td>
+                <td>${fmtCompact(r.share)}</td>
+                <td class="${cls}">${(r.change || 0) >= 0 ? '+' : ''}${fmtCompact(r.change)}</td>
+                <td>${r.portfolioPercent ? r.portfolioPercent.toFixed(2) + '%' : '-'}</td>
+            </tr>`;
+        }).join('');
+    } else {
+        ownershipBody.innerHTML = unavailableRow(4, 'unavailable — 13-F ownership is a paid-plan endpoint on Finnhub');
+    }
+
+    // Congressional trading
+    const congressBody = document.querySelector('#inst-congress-table tbody');
+    if (congress.status === 'fulfilled' && Array.isArray(congress.value?.data) && congress.value.data.length > 0) {
+        const rows = congress.value.data.slice(0, 15);
+        congressBody.innerHTML = rows.map(r => {
+            const cls = /purchase|buy/i.test(r.transactionType || '') ? 'quant-positive' : /sale|sell/i.test(r.transactionType || '') ? 'quant-negative' : '';
+            return `<tr>
+                <td>${r.filingDate || '-'}</td>
+                <td>${r.name || '-'}</td>
+                <td class="${cls}">${r.transactionType || '-'}</td>
+                <td>$${fmtCompact(r.amountFrom)} – $${fmtCompact(r.amountTo)}</td>
+            </tr>`;
+        }).join('');
+    } else {
+        congressBody.innerHTML = unavailableRow(4);
+    }
+
+    // Lobbying
+    const lobbyingBody = document.querySelector('#inst-lobbying-table tbody');
+    if (lobbying.status === 'fulfilled' && Array.isArray(lobbying.value?.data) && lobbying.value.data.length > 0) {
+        const rows = lobbying.value.data.slice(0, 15);
+        lobbyingBody.innerHTML = rows.map(r => `
+            <tr>
+                <td>${r.year || '-'}${r.quarter ? ' Q' + r.quarter : ''}</td>
+                <td>${r.client || '-'}</td>
+                <td>${r.specificIssue || r.genericIssue || '-'}</td>
+                <td>$${fmtCompact(r.amount)}</td>
+            </tr>
+        `).join('');
+    } else {
+        lobbyingBody.innerHTML = unavailableRow(4);
+    }
+
+    // Press releases
+    const pressList = document.getElementById('inst-press-list');
+    if (press.status === 'fulfilled' && Array.isArray(press.value?.majorDevelopment) && press.value.majorDevelopment.length > 0) {
+        const items = press.value.majorDevelopment.slice(0, 12);
+        pressList.innerHTML = items.map(item => `
+            <a class="news-item" href="${item.url || '#'}" target="_blank" rel="noopener">
+                <div>
+                    <div class="news-item-title">${(item.headline || '').replace(/</g, '&lt;')}</div>
+                    <div class="news-item-meta">${item.datetime ? new Date(item.datetime).toLocaleDateString() : ''}</div>
+                </div>
+            </a>
+        `).join('');
+    } else {
+        pressList.innerHTML = '<div style="opacity:0.5; font-size:11px; padding:6px 0;">unavailable</div>';
+    }
+
+    const failedCount = [sentiment, insiderSent, insiderTx, ownership, congress, lobbying, press].filter(r => r.status === 'rejected').length;
+    setInstitutionalStatus(`updated ${new Date().toLocaleTimeString()} for ${symbol}` + (failedCount ? ` · ${failedCount}/7 endpoints unavailable` : ''), failedCount === 7);
+}
+
 /* --------------------------------- INIT ---------------------------------- */
 
 window.initNewsTab = function () {
@@ -340,6 +491,7 @@ window.initNewsTab = function () {
     loadFinnhubNews();
     loadEconomicCalendar();
     loadEarningsCalendar();
+    loadInstitutionalActivity();
     if (fngHistoryChart) fngHistoryChart.reflow();
 };
 
@@ -350,4 +502,8 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('finnhub-news-category')?.addEventListener('change', loadFinnhubNews);
     document.getElementById('econ-calendar-refresh-btn')?.addEventListener('click', loadEconomicCalendar);
     document.getElementById('earnings-calendar-refresh-btn')?.addEventListener('click', loadEarningsCalendar);
+    document.getElementById('institutional-refresh-btn')?.addEventListener('click', loadInstitutionalActivity);
+    document.getElementById('institutional-symbol-input')?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') loadInstitutionalActivity();
+    });
 });
