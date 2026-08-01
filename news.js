@@ -1,17 +1,11 @@
 /* news.js
    News & Sentiment tab. Sources:
    - Fear & Greed Index: alternative.me (free, no key).
-   - Crypto headlines: CryptoCompare + Finnhub crypto category, merged and
-     de-duplicated so one provider's outage/rate-limit doesn't blank the feed.
-   - Economic Calendar: Finnhub /calendar/economic.
-   - Equity Analyst Desk (per symbol): Finnhub /stock/recommendation,
-     /stock/price-target, /stock/upgrade-downgrade, /news-sentiment,
-     /stock/social-sentiment, /company-news.
-
-   Finnhub needs an API key. A default is bundled below but it's read
-   from (and savable to) localStorage, same pattern as the FRED key on
-   the Macro tab, in case it gets rate-limited or the person wants to
-   swap in their own.
+   - Latest Crypto News: CryptoCompare public news API (free, no key).
+   - Finnhub (needs a free API key, entered/saved in #finnhub-key-panel):
+       /news              -> Market News (category: general/forex/crypto/merger)
+       /calendar/economic -> Economic Calendar
+       /calendar/earnings -> Earnings Calendar
 */
 
 if (typeof window.CHART_MONO === 'undefined') {
@@ -53,16 +47,15 @@ if (typeof window.CHART_MONO === 'undefined') {
 let fngHistoryChart = null;
 
 const FINNHUB_KEY_STORAGE = 'news_finnhub_api_key';
-const FINNHUB_DEFAULT_KEY = 'd5ftvrhr01qie3lf7f8gd5ftvrhr01qie3lf7f90';
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 
 function getFinnhubKey() {
-    return (localStorage.getItem(FINNHUB_KEY_STORAGE) || FINNHUB_DEFAULT_KEY || '').trim();
+    return (localStorage.getItem(FINNHUB_KEY_STORAGE) || '').trim();
 }
 
 async function finnhubGet(path, params) {
     const key = getFinnhubKey();
-    if (!key) throw new Error('no Finnhub API key set');
+    if (!key) throw new Error('no Finnhub API key saved — enter one above');
     const qs = new URLSearchParams({ ...params, token: key }).toString();
     const res = await fetch(`${FINNHUB_BASE}${path}?${qs}`);
     if (!res.ok) throw new Error(`Finnhub ${path} returned ${res.status}`);
@@ -146,7 +139,8 @@ async function loadFearGreed() {
     }
 }
 
-/* ------------------------------ HEADLINES --------------------------------- */
+/* ------------------------------ LATEST NEWS -------------------------------
+   #news-panel: CryptoCompare only, unchanged behavior. */
 
 const setNewsStatus = genericStatusSetter('news-status');
 
@@ -160,96 +154,88 @@ function timeAgo(unixSeconds) {
     return `${Math.floor(hours / 24)}d ago`;
 }
 
-async function fetchCryptoCompareNews() {
-    const res = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN&sortOrder=latest');
-    if (!res.ok) throw new Error(`CryptoCompare returned ${res.status}`);
-    const json = await res.json();
-    const items = json.Data || [];
-    return items.map(item => ({
-        title: item.title, url: item.url, image: item.imageurl || '',
-        source: item.source_info?.name || item.source || 'Unknown',
-        publishedOn: item.published_on, provider: 'CryptoCompare'
-    }));
-}
-
-async function fetchFinnhubCryptoNews() {
-    const json = await finnhubGet('/news', { category: 'crypto' });
-    if (!Array.isArray(json)) return [];
-    return json.map(item => ({
-        title: item.headline, url: item.url, image: item.image || '',
-        source: item.source || 'Finnhub', publishedOn: item.datetime, provider: 'Finnhub'
-    }));
-}
-
-function dedupeAndSort(items) {
-    const seen = new Set();
-    const out = [];
-    for (const item of items) {
-        if (!item.title || !item.url) continue;
-        const key = item.title.trim().toLowerCase().replace(/\s+/g, ' ');
-        if (seen.has(key)) continue;
-        seen.add(key);
-        out.push(item);
-    }
-    out.sort((a, b) => b.publishedOn - a.publishedOn);
-    return out;
-}
-
-function renderNewsList(elId, items) {
-    const list = document.getElementById(elId);
-    if (!list) return;
-    list.innerHTML = '';
-    items.forEach(item => {
-        const a = document.createElement('a');
-        a.className = 'news-item';
-        a.href = item.url; a.target = '_blank'; a.rel = 'noopener';
-
-        const img = document.createElement('img');
-        img.src = item.image || ''; img.alt = '';
-        img.onerror = () => { img.style.display = 'none'; };
-
-        const textWrap = document.createElement('div');
-        const title = document.createElement('div');
-        title.className = 'news-item-title';
-        title.textContent = item.title;
-
-        const meta = document.createElement('div');
-        meta.className = 'news-item-meta';
-        const providerTag = document.createElement('span');
-        providerTag.className = 'news-item-provider';
-        providerTag.textContent = item.provider;
-        meta.appendChild(providerTag);
-        meta.appendChild(document.createTextNode(` ${item.source} · ${timeAgo(item.publishedOn)}`));
-
-        textWrap.appendChild(title); textWrap.appendChild(meta);
-        a.appendChild(img); a.appendChild(textWrap);
-        list.appendChild(a);
-    });
-}
-
 async function loadNews() {
     setNewsStatus('loading…');
-    const results = await Promise.allSettled([fetchCryptoCompareNews(), fetchFinnhubCryptoNews()]);
-    const merged = [];
-    const failed = [];
-    results.forEach((r, i) => {
-        const label = i === 0 ? 'CryptoCompare' : 'Finnhub';
-        if (r.status === 'fulfilled') merged.push(...r.value); else failed.push(label);
-    });
+    try {
+        const res = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN&sortOrder=latest');
+        if (!res.ok) throw new Error('CryptoCompare unreachable');
+        const json = await res.json();
+        const items = (json.Data || []).slice(0, 30);
+        if (items.length === 0) throw new Error('no articles returned');
 
-    if (merged.length === 0) {
-        setNewsStatus('failed — all sources unreachable' + (failed.length ? ` (${failed.join(', ')})` : ''), true);
-        return;
+        const list = document.getElementById('news-list');
+        list.innerHTML = '';
+        items.forEach(item => {
+            const a = document.createElement('a');
+            a.className = 'news-item';
+            a.href = item.url; a.target = '_blank'; a.rel = 'noopener';
+
+            const img = document.createElement('img');
+            img.src = item.imageurl || ''; img.alt = '';
+            img.onerror = () => { img.style.display = 'none'; };
+
+            const textWrap = document.createElement('div');
+            const title = document.createElement('div');
+            title.className = 'news-item-title';
+            title.textContent = item.title;
+            const meta = document.createElement('div');
+            meta.className = 'news-item-meta';
+            meta.textContent = `${item.source_info?.name || item.source || 'Unknown'} · ${timeAgo(item.published_on)}`;
+            textWrap.appendChild(title); textWrap.appendChild(meta);
+
+            a.appendChild(img); a.appendChild(textWrap);
+            list.appendChild(a);
+        });
+
+        setNewsStatus('updated ' + new Date().toLocaleTimeString());
+    } catch (e) {
+        setNewsStatus('failed — ' + e.message, true);
     }
+}
 
-    const items = dedupeAndSort(merged).slice(0, 40);
-    renderNewsList('news-list', items);
+/* ------------------------------ FINNHUB KEY -------------------------------- */
 
-    const ccCount = merged.filter(i => i.provider === 'CryptoCompare').length;
-    const fhCount = merged.filter(i => i.provider === 'Finnhub').length;
-    let msg = `updated ${new Date().toLocaleTimeString()} · ${items.length} items (CryptoCompare ${ccCount}, Finnhub ${fhCount})`;
-    if (failed.length) msg += ` — ${failed.join(', ')} unreachable`;
-    setNewsStatus(msg, failed.length === 2);
+document.addEventListener('DOMContentLoaded', function () {
+    const savedKey = getFinnhubKey();
+    const input = document.getElementById('finnhub-api-key-input');
+    if (input && savedKey) input.value = savedKey;
+
+    document.getElementById('finnhub-key-save-btn')?.addEventListener('click', () => {
+        if (!input) return;
+        localStorage.setItem(FINNHUB_KEY_STORAGE, input.value.trim());
+        loadFinnhubNews();
+        loadEconomicCalendar();
+        loadEarningsCalendar();
+    });
+});
+
+/* ------------------------------ FINNHUB NEWS ------------------------------- */
+
+const setFinnhubNewsStatus = genericStatusSetter('finnhub-news-status');
+
+async function loadFinnhubNews() {
+    const category = document.getElementById('finnhub-news-category')?.value || 'general';
+    setFinnhubNewsStatus('loading…');
+    try {
+        const json = await finnhubGet('/news', { category });
+        if (!Array.isArray(json) || json.length === 0) throw new Error('no articles returned');
+
+        const items = json.slice(0, 40).sort((a, b) => b.datetime - a.datetime);
+        const tbody = document.querySelector('#finnhub-news-table tbody');
+        tbody.innerHTML = items.map(item => `
+            <tr>
+                <td>${new Date(item.datetime * 1000).toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+                <td><a href="${item.url}" target="_blank" rel="noopener">${(item.headline || '').replace(/</g, '&lt;')}</a></td>
+                <td>${item.source || '-'}</td>
+                <td>${item.category || category}</td>
+            </tr>
+        `).join('');
+
+        setFinnhubNewsStatus('updated ' + new Date().toLocaleTimeString() + ` · ${items.length} articles (${category})`);
+    } catch (e) {
+        setFinnhubNewsStatus('failed — ' + e.message, true);
+        document.querySelector('#finnhub-news-table tbody').innerHTML = '';
+    }
 }
 
 /* ---------------------------- ECONOMIC CALENDAR --------------------------- */
@@ -257,9 +243,9 @@ async function loadNews() {
 const setEconCalStatus = genericStatusSetter('econ-calendar-status');
 
 function impactBadge(impact) {
-    const lvl = (impact || '').toLowerCase();
-    if (lvl.includes('3') || lvl === 'high') return '<span class="econ-impact econ-impact-high">HIGH</span>';
-    if (lvl.includes('2') || lvl === 'medium') return '<span class="econ-impact econ-impact-med">MED</span>';
+    const s = String(impact ?? '').toLowerCase();
+    if (s === '3' || s.includes('high')) return '<span class="econ-impact econ-impact-high">HIGH</span>';
+    if (s === '2' || s.includes('medium')) return '<span class="econ-impact econ-impact-med">MED</span>';
     return '<span class="econ-impact econ-impact-low">LOW</span>';
 }
 
@@ -267,7 +253,7 @@ async function loadEconomicCalendar() {
     setEconCalStatus('loading…');
     try {
         const today = new Date();
-        const from = new Date(today); from.setUTCDate(from.getUTCDate() - 2);
+        const from = new Date(today); from.setUTCDate(from.getUTCDate() - 7);
         const to = new Date(today); to.setUTCDate(to.getUTCDate() + 7);
         const fmt = d => d.toISOString().slice(0, 10);
 
@@ -275,16 +261,15 @@ async function loadEconomicCalendar() {
         const events = (json.economicCalendar || []).slice().sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
         const tbody = document.querySelector('#econ-calendar-table tbody');
-        if (!tbody) return;
         if (events.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" style="opacity:0.6;">no events in range</td></tr>';
         } else {
-            tbody.innerHTML = events.slice(0, 60).map(ev => `
+            tbody.innerHTML = events.slice(0, 80).map(ev => `
                 <tr>
                     <td>${(ev.time || '').replace('T', ' ').slice(0, 16)}</td>
                     <td>${ev.country || '-'}</td>
                     <td>${ev.event || '-'}</td>
-                    <td>${impactBadge(String(ev.impact))}</td>
+                    <td>${impactBadge(ev.impact)}</td>
                     <td>${ev.actual ?? '-'}</td>
                     <td>${ev.estimate ?? '-'}</td>
                     <td>${ev.prev ?? '-'}</td>
@@ -294,107 +279,54 @@ async function loadEconomicCalendar() {
         setEconCalStatus('updated ' + new Date().toLocaleTimeString() + ` · ${events.length} events`);
     } catch (e) {
         setEconCalStatus('failed — ' + e.message, true);
+        document.querySelector('#econ-calendar-table tbody').innerHTML = '';
     }
 }
 
-/* ----------------------------- ANALYST DESK -------------------------------- */
+/* ----------------------------- EARNINGS CALENDAR --------------------------- */
 
-const setAnalystStatus = genericStatusSetter('analyst-desk-status');
+const setEarningsCalStatus = genericStatusSetter('earnings-calendar-status');
 
-function fmtNum(v, decimals) {
-    if (v === null || v === undefined || !isFinite(v)) return '-';
-    return Number(v).toFixed(decimals ?? 2);
+function sessionLabel(hour) {
+    const h = (hour || '').toLowerCase();
+    if (h === 'bmo') return 'Before Open';
+    if (h === 'amc') return 'After Close';
+    if (h === 'dmh') return 'During Hours';
+    return h || '-';
 }
 
-async function loadAnalystDesk() {
-    const symbol = (document.getElementById('analyst-symbol-input')?.value || 'COIN').trim().toUpperCase();
-    if (!symbol) return;
-    const echo = document.getElementById('analyst-symbol-echo');
-    if (echo) echo.textContent = symbol;
-    setAnalystStatus(`loading ${symbol}…`);
+async function loadEarningsCalendar() {
+    setEarningsCalStatus('loading…');
+    try {
+        const today = new Date();
+        const from = new Date(today); from.setUTCDate(from.getUTCDate() - 7);
+        const to = new Date(today); to.setUTCDate(to.getUTCDate() + 7);
+        const fmt = d => d.toISOString().slice(0, 10);
 
-    const setCell = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
-    ['analyst-rec-value', 'analyst-pt-value', 'analyst-sentiment-value', 'analyst-social-value', 'analyst-upgrade-value']
-        .forEach(id => setCell(id, '<span style="opacity:0.5;">loading…</span>'));
-    const newsEl = document.getElementById('analyst-company-news');
-    if (newsEl) newsEl.innerHTML = '';
+        const json = await finnhubGet('/calendar/earnings', { from: fmt(from), to: fmt(to) });
+        const rows = (json.earningsCalendar || []).slice().sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
-    const today = new Date();
-    const from = new Date(today); from.setUTCDate(from.getUTCDate() - 14);
-    const fmtDate = d => d.toISOString().slice(0, 10);
-
-    const [rec, pt, upg, sent, social, cnews] = await Promise.allSettled([
-        finnhubGet('/stock/recommendation', { symbol }),
-        finnhubGet('/stock/price-target', { symbol }),
-        finnhubGet('/stock/upgrade-downgrade', { symbol }),
-        finnhubGet('/news-sentiment', { symbol }),
-        finnhubGet('/stock/social-sentiment', { symbol }),
-        finnhubGet('/company-news', { symbol, from: fmtDate(from), to: fmtDate(today) })
-    ]);
-
-    // Recommendation trend
-    if (rec.status === 'fulfilled' && Array.isArray(rec.value) && rec.value.length > 0) {
-        const r = rec.value[0];
-        const total = (r.buy || 0) + (r.hold || 0) + (r.sell || 0) + (r.strongBuy || 0) + (r.strongSell || 0);
-        setCell('analyst-rec-value', total > 0
-            ? `<span class="quant-positive">Buy ${r.strongBuy + r.buy}</span> / Hold ${r.hold} / <span class="quant-negative">Sell ${r.sell + r.strongSell}</span> <span style="opacity:0.5;">(${r.period || ''})</span>`
-            : 'no coverage');
-    } else {
-        setCell('analyst-rec-value', '<span style="opacity:0.5;">unavailable</span>');
+        const tbody = document.querySelector('#earnings-calendar-table tbody');
+        if (rows.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="opacity:0.6;">no earnings in range</td></tr>';
+        } else {
+            tbody.innerHTML = rows.slice(0, 80).map(r => `
+                <tr>
+                    <td>${r.date || '-'}</td>
+                    <td>${r.symbol || '-'}</td>
+                    <td>${sessionLabel(r.hour)}</td>
+                    <td>${r.epsEstimate ?? '-'}</td>
+                    <td>${r.epsActual ?? '-'}</td>
+                    <td>${r.revenueEstimate ?? '-'}</td>
+                    <td>${r.revenueActual ?? '-'}</td>
+                </tr>
+            `).join('');
+        }
+        setEarningsCalStatus('updated ' + new Date().toLocaleTimeString() + ` · ${rows.length} reports`);
+    } catch (e) {
+        setEarningsCalStatus('failed — ' + e.message, true);
+        document.querySelector('#earnings-calendar-table tbody').innerHTML = '';
     }
-
-    // Price target
-    if (pt.status === 'fulfilled' && pt.value && pt.value.targetMean) {
-        const t = pt.value;
-        setCell('analyst-pt-value', `Mean $${fmtNum(t.targetMean)} &nbsp;·&nbsp; High $${fmtNum(t.targetHigh)} &nbsp;·&nbsp; Low $${fmtNum(t.targetLow)}`);
-    } else {
-        setCell('analyst-pt-value', '<span style="opacity:0.5;">unavailable</span>');
-    }
-
-    // News sentiment / buzz
-    if (sent.status === 'fulfilled' && sent.value && sent.value.sentiment) {
-        const s = sent.value;
-        const bullish = (s.sentiment.bullishPercent * 100).toFixed(0);
-        const bearish = (s.sentiment.bearishPercent * 100).toFixed(0);
-        setCell('analyst-sentiment-value', `<span class="quant-positive">Bullish ${bullish}%</span> / <span class="quant-negative">Bearish ${bearish}%</span> &nbsp;·&nbsp; Buzz ${fmtNum(s.buzz?.buzz, 2)}`);
-    } else {
-        setCell('analyst-sentiment-value', '<span style="opacity:0.5;">unavailable</span>');
-    }
-
-    // Social sentiment (reddit + twitter mention counts, most recent day)
-    if (social.status === 'fulfilled' && social.value && (social.value.reddit || social.value.twitter)) {
-        const reddit = (social.value.reddit || [])[0];
-        const twitter = (social.value.twitter || [])[0];
-        const parts = [];
-        if (reddit) parts.push(`Reddit mentions ${reddit.mention} (score ${fmtNum(reddit.score, 2)})`);
-        if (twitter) parts.push(`Twitter mentions ${twitter.mention} (score ${fmtNum(twitter.score, 2)})`);
-        setCell('analyst-social-value', parts.length ? parts.join(' &nbsp;·&nbsp; ') : 'no recent data');
-    } else {
-        setCell('analyst-social-value', '<span style="opacity:0.5;">unavailable</span>');
-    }
-
-    // Recent rating actions
-    if (upg.status === 'fulfilled' && Array.isArray(upg.value) && upg.value.length > 0) {
-        const recent = upg.value.slice(0, 3).map(u => {
-            const cls = /up/i.test(u.action) ? 'quant-positive' : /down/i.test(u.action) ? 'quant-negative' : '';
-            return `<span class="${cls}">${u.company}: ${u.fromGrade || '?'} → ${u.toGrade || '?'}</span>`;
-        }).join(' &nbsp;·&nbsp; ');
-        setCell('analyst-upgrade-value', recent);
-    } else {
-        setCell('analyst-upgrade-value', '<span style="opacity:0.5;">no recent actions</span>');
-    }
-
-    // Company news
-    if (cnews.status === 'fulfilled' && Array.isArray(cnews.value)) {
-        const items = cnews.value.slice(0, 12).map(item => ({
-            title: item.headline, url: item.url, image: item.image || '',
-            source: item.source || 'Finnhub', publishedOn: item.datetime, provider: symbol
-        }));
-        renderNewsList('analyst-company-news', dedupeAndSort(items));
-    }
-
-    const failedCount = [rec, pt, upg, sent, social, cnews].filter(r => r.status === 'rejected').length;
-    setAnalystStatus(`updated ${new Date().toLocaleTimeString()} for ${symbol}` + (failedCount ? ` · ${failedCount}/6 endpoints unavailable` : ''), failedCount === 6);
 }
 
 /* --------------------------------- INIT ---------------------------------- */
@@ -402,37 +334,17 @@ async function loadAnalystDesk() {
 window.initNewsTab = function () {
     loadFearGreed();
     loadNews();
+    loadFinnhubNews();
     loadEconomicCalendar();
-    loadAnalystDesk();
+    loadEarningsCalendar();
     if (fngHistoryChart) fngHistoryChart.reflow();
 };
 
 document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('fng-refresh-btn')?.addEventListener('click', loadFearGreed);
     document.getElementById('news-refresh-btn')?.addEventListener('click', loadNews);
+    document.getElementById('finnhub-news-refresh-btn')?.addEventListener('click', loadFinnhubNews);
+    document.getElementById('finnhub-news-category')?.addEventListener('change', loadFinnhubNews);
     document.getElementById('econ-calendar-refresh-btn')?.addEventListener('click', loadEconomicCalendar);
-    document.getElementById('analyst-desk-refresh-btn')?.addEventListener('click', loadAnalystDesk);
-    document.getElementById('analyst-symbol-input')?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') loadAnalystDesk();
-    });
-
-    // Finnhub key row, injected once into #news-controls (optional to
-    // touch — a default key is bundled — but overridable/persisted).
-    const controls = document.getElementById('news-controls');
-    if (controls && !document.getElementById('finnhub-key-input')) {
-        const wrap = document.createElement('span');
-        wrap.id = 'finnhub-key-row';
-        wrap.innerHTML = `
-            <input type="text" id="finnhub-key-input" placeholder="Finnhub API key (default bundled)">
-            <button id="finnhub-key-save-btn">Save Key</button>
-        `;
-        controls.appendChild(wrap);
-        const input = document.getElementById('finnhub-key-input');
-        const saved = localStorage.getItem(FINNHUB_KEY_STORAGE);
-        if (saved) input.value = saved;
-        document.getElementById('finnhub-key-save-btn')?.addEventListener('click', () => {
-            localStorage.setItem(FINNHUB_KEY_STORAGE, input.value.trim());
-            loadNews(); loadEconomicCalendar(); loadAnalystDesk();
-        });
-    }
+    document.getElementById('earnings-calendar-refresh-btn')?.addEventListener('click', loadEarningsCalendar);
 });
