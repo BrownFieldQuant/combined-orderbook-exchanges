@@ -1188,10 +1188,10 @@
         #footprint-table td.delta-row {
             font-weight: bold;
         }
-        #footprint-cell-buy {
+        .footprint-cell-buy {
             color: #3ecf8e;
         }
-        #footprint-cell-sell {
+        .footprint-cell-sell {
             color: #ef5350;
         }
         .fp-delta-pos {
@@ -1451,6 +1451,44 @@
         .basket-chip.failed {
             border-color: #5a2020;
             color: #ef5350;
+        }
+
+        #footprint-grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        @media (max-width: 1100px) {
+            #footprint-grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        .fp-grid-cell {
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+        }
+        #cryexc-embed-controls, #tradermap-embed-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 6px 0;
+            flex-wrap: wrap;
+        }
+        #cryexc-embed-note, #tradermap-embed-note {
+            font-size: 9px;
+            color: #6b7280;
+        }
+        #cryexc-iframe, #tradermap-iframe {
+            width: 100%;
+            height: 460px;
+            border: 1px solid #232838;
+            background: #0b0e14;
+            flex: 1;
+        }
+        #cryexc-embed-panel.collapsed #cryexc-iframe,
+        #tradermap-embed-panel.collapsed #tradermap-iframe {
+            display: none;
         }
 
         }
@@ -2156,10 +2194,10 @@
         #footprint-table td.delta-row {
             font-weight: bold;
         }
-        #footprint-cell-buy {
+        .footprint-cell-buy {
             color: #1f9d63;
         }
-        #footprint-cell-sell {
+        .footprint-cell-sell {
             color: #c62828;
         }
         .fp-delta-pos {
@@ -2419,6 +2457,44 @@
         .basket-chip.failed {
             border-color: #f3b4b4;
             color: #c62828;
+        }
+
+        #footprint-grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        @media (max-width: 1100px) {
+            #footprint-grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        .fp-grid-cell {
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+        }
+        #cryexc-embed-controls, #tradermap-embed-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 6px 0;
+            flex-wrap: wrap;
+        }
+        #cryexc-embed-note, #tradermap-embed-note {
+            font-size: 9px;
+            color: #5b6472;
+        }
+        #cryexc-iframe, #tradermap-iframe {
+            width: 100%;
+            height: 460px;
+            border: 1px solid #dcdfe4;
+            background: #f4f5f7;
+            flex: 1;
+        }
+        #cryexc-embed-panel.collapsed #cryexc-iframe,
+        #tradermap-embed-panel.collapsed #tradermap-iframe {
+            display: none;
         }
 
         }
@@ -2816,6 +2892,11 @@
             border-right: none !important;
             border-top: none !important;
             border-bottom: 1px solid rgba(128,128,128,0.12) !important;
+        }
+        .fp-poc {
+            background: rgba(var(--accent-rgb), 0.16) !important;
+            box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.5);
+            font-weight: 700;
         }
 
         .tab-btn {
@@ -3367,7 +3448,7 @@
     </div>
 
     <div id="view-footprint" class="tab-view">
-        <div id="footprint-note">Simplified footprint chart — real trades from Binance Futures aggTrade WebSocket, bucketed by price level per candle (buy volume left, sell volume right). Not a port of Cryexc (that's a compiled C++/WASM app, not portable code) — this is a from-scratch build using our own stack, so it's lighter: single exchange, no DOM ladder/options-flow/multi-exchange correlation.</div>
+        <div id="footprint-note">Our own footprint (candlestick + buy/sell-per-level table + CVD) uses real Binance Futures WebSocket data. The two embedded panels below (Cryexc, TraderMap) are third-party tools shown via iframe with permission/public embed support — not built by us, shown as a convenience.</div>
 
         <div id="footprint-controls">
             <input type="text" id="footprint-symbol" placeholder="BTCUSDT" value="BTCUSDT">
@@ -3382,9 +3463,34 @@
             <span id="footprint-status"></span>
         </div>
 
-        <div id="footprint-candle-panel" class="quant-cell">
-            <div class="quant-cell-title">Price — Binance Kline WebSocket</div>
-            <div id="footprint-candle-chart" class="quant-cell-chart"></div>
+        <div id="footprint-grid-layout">
+            <div id="cryexc-embed-panel" class="quant-cell fp-grid-cell">
+                <div class="quant-cell-title">Cryexc — embedded (Footprint, DOM Ladder, Orderbook, Screener, Correlation, News...)</div>
+                <div id="cryexc-embed-controls">
+                    <button id="cryexc-embed-toggle-btn">Hide</button>
+                    <span id="cryexc-embed-note">Embedded with permission from the Cryexc owner.</span>
+                </div>
+                <iframe id="cryexc-iframe" src="https://cryexc.josedonato.com/app" title="Cryexc" loading="lazy"></iframe>
+            </div>
+
+            <div id="tradermap-embed-panel" class="quant-cell fp-grid-cell">
+                <div class="quant-cell-title">TraderMap — Liquidation Map</div>
+                <div id="tradermap-embed-controls">
+                    <button id="tradermap-embed-toggle-btn">Hide</button>
+                    <span id="tradermap-embed-note">TraderMap publishes an official embeddable widget system (tradermap.io/widgets) — the app page below may block framing since it isn't the dedicated widget path. If it shows blank, use their Widget Customizer to get a /widgets/ embed URL instead.</span>
+                </div>
+                <iframe id="tradermap-iframe" src="https://tradermap.io/liquidation-map" title="TraderMap Liquidation Map" loading="lazy"></iframe>
+            </div>
+
+            <div id="footprint-candle-panel" class="quant-cell fp-grid-cell">
+                <div class="quant-cell-title">Price — Binance Kline WebSocket</div>
+                <div id="footprint-candle-chart" class="quant-cell-chart"></div>
+            </div>
+
+            <div id="cvd-panel" class="quant-cell fp-grid-cell">
+                <div class="quant-cell-title">Cumulative Volume Delta (this session)</div>
+                <div id="footprint-cvd-chart" class="quant-cell-chart"></div>
+            </div>
         </div>
 
         <div id="footprint-panel" class="quant-cell">
@@ -3392,11 +3498,6 @@
             <div id="footprint-grid-wrap">
                 <table id="footprint-table"><thead></thead><tbody></tbody><tfoot></tfoot></table>
             </div>
-        </div>
-
-        <div id="cvd-panel" class="quant-cell">
-            <div class="quant-cell-title">Cumulative Volume Delta (this session)</div>
-            <div id="footprint-cvd-chart" class="quant-cell-chart"></div>
         </div>
     </div>
 
