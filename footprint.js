@@ -12,13 +12,15 @@
    Candle bucketing also follows their documented approach:
    candle_time = floor(tradeTime / intervalMs) * intervalMs
 
-   This is a from-scratch build against our own stack. Scope is intentionally
+   This is a from-scratch build against our own stack (not a port of
+   Cryexc, which is a compiled C++/Dear ImGui/WebAssembly app — a
+   completely different, non-portable tech stack). Scope is intentionally
    smaller: one exchange, no DOM ladder, no options flow, no cross-venue
    correlation, session-only (resets on reload).
 */
 
 (function () {
-    const MAX_CANDLES = 200;
+    const MAX_CANDLES = 20;
     const RENDER_THROTTLE_MS = 700;
 
     let ws = null;
@@ -362,6 +364,20 @@
         });
 
         window.addEventListener('beforeunload', () => disconnect(false));
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        function wireEmbedToggle(btnId, panelId, iframeId) {
+            const btn = document.getElementById(btnId);
+            const panel = document.getElementById(panelId);
+            if (!btn || !panel) return;
+            btn.addEventListener('click', () => {
+                panel.classList.toggle('collapsed');
+                btn.textContent = panel.classList.contains('collapsed') ? 'Show' : 'Hide';
+            });
+        }
+        wireEmbedToggle('cryexc-embed-toggle-btn', 'cryexc-embed-panel', 'cryexc-iframe');
+        wireEmbedToggle('tradermap-embed-toggle-btn', 'tradermap-embed-panel', 'tradermap-iframe');
     });
 
     window.initFootprintTab = function () {
