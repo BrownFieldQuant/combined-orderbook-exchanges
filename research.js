@@ -11,7 +11,23 @@
 
 const SPREAD_HISTORY_KEY = 'orderbook_spread_history';
 const WATCHLIST_KEY = 'orderbook_watchlist_symbols';
-const MAX_HISTORY_POINTS = 200;
+const MAX_HISTORY_POINTS = 50000;
+
+// Instead of hard-deleting the oldest points once a cap is hit, thin the
+// OLDER half of the series by half (keep every 2nd point there) while
+// leaving the most recent half at full resolution. Repeated overflows keep
+// halving the density of old data — so the full time range is preserved
+// (never truncated away), just at progressively lower resolution the
+// further back you go. This lets history grow effectively unlimited in
+// wall-clock time while staying bounded in storage size.
+function downsampleHistory(history, maxLen) {
+    if (!Array.isArray(history) || history.length <= maxLen) return history;
+    const mid = Math.floor(history.length / 2);
+    const olderThinned = history.slice(0, mid).filter((_, i) => i % 2 === 0);
+    const recentFull = history.slice(mid);
+    const merged = olderThinned.concat(recentFull);
+    return merged.length > maxLen ? downsampleHistory(merged, maxLen) : merged;
+}
 
 let depthChart = null;
 let spreadChart = null;
@@ -201,9 +217,7 @@ function recordSpreadPoint(data, symbol) {
     const history = loadSpreadHistory();
     if (!history[symbol]) history[symbol] = [];
     history[symbol].push([Date.now(), spreadPct]);
-    if (history[symbol].length > MAX_HISTORY_POINTS) {
-        history[symbol] = history[symbol].slice(-MAX_HISTORY_POINTS);
-    }
+    history[symbol] = downsampleHistory(history[symbol], MAX_HISTORY_POINTS);
     saveSpreadHistory(history);
     renderSpreadChart(symbol);
 }
@@ -520,7 +534,11 @@ function updateQuantSignals(data, symbol) {
             ? (spreadPct - (spreadPctBuffer.reduce((s, v) => s + v, 0) / spreadPctBuffer.length))
             : 0
     });
-    if (history.length > QUANT_HISTORY_MAX) history.splice(0, history.length - QUANT_HISTORY_MAX);
+    if (history.length > QUANT_HISTORY_MAX) {
+        const thinned = downsampleHistory(history, QUANT_HISTORY_MAX);
+        history.length = 0;
+        history.push(...thinned);
+    }
     saveQuantHistory(symbol, history);
 
     updateQuantAnalyticsStats(symbol, midPrice, microprice, history);
@@ -529,7 +547,7 @@ function updateQuantSignals(data, symbol) {
 
 /* --------------------------- QUANT ANALYTICS TAB --------------------------- */
 
-const QUANT_HISTORY_MAX = 5000; // persisted points per symbol (~ many hours/days of research data)
+const QUANT_HISTORY_MAX = 50000; // persisted points per symbol, downsampled (not truncated) beyond this
 const QUANT_HISTORY_KEY_PREFIX = 'orderbook_quant_history_';
 const QUANT_RANGES = { '15m': 15 * 60 * 1000, '1h': 60 * 60 * 1000, '4h': 4 * 60 * 60 * 1000, '1d': 24 * 60 * 60 * 1000, all: Infinity };
 let selectedQuantRange = '1h';
@@ -548,9 +566,17 @@ function saveQuantHistory(symbol, history) {
     try {
         localStorage.setItem(QUANT_HISTORY_KEY_PREFIX + symbol, JSON.stringify(history));
     } catch (e) {
-        // Storage full/unavailable — trim harder and retry once.
-        const trimmed = history.slice(-500);
-        try { localStorage.setItem(QUANT_HISTORY_KEY_PREFIX + symbol, JSON.stringify(trimmed)); } catch (e2) { /* give up silently */ }
+        // Storage full/unavailable — downsample harder (halves the older
+        // half's resolution repeatedly) and retry, instead of chopping off
+        // most of the history outright.
+        let trimmed = history;
+        for (let i = 0; i < 6 && trimmed.length > 500; i++) {
+            trimmed = downsampleHistory(trimmed, Math.max(500, Math.floor(trimmed.length * 0.6)));
+            try {
+                localStorage.setItem(QUANT_HISTORY_KEY_PREFIX + symbol, JSON.stringify(trimmed));
+                return;
+            } catch (e2) { /* keep shrinking */ }
+        }
     }
 }
 
@@ -560,8 +586,8 @@ function recordSimpleQuantPoint(symbol, midPrice) {
     const history = loadQuantHistory(symbol);
     const lastCofi = history.length ? history[history.length - 1].cofi : 0;
     history.push({ time: Date.now(), mid: midPrice, cofi: lastCofi, zscore: 0 });
-    if (history.length > QUANT_HISTORY_MAX) history.splice(0, history.length - QUANT_HISTORY_MAX);
-    saveQuantHistory(symbol, history);
+    const trimmed = downsampleHistory(history, QUANT_HISTORY_MAX);
+    saveQuantHistory(symbol, trimmed);
 }
 
 function updateQuantAnalyticsStats(symbol, midPrice, microprice, history) {
