@@ -47,10 +47,11 @@ if (typeof window.CHART_MONO === 'undefined') {
 let fngHistoryChart = null;
 
 const FINNHUB_KEY_STORAGE = 'news_finnhub_api_key';
+const FINNHUB_DEFAULT_KEY = 'd5ftvrhr01qie3lf7f8gd5ftvrhr01qie3lf7f90';
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 
 function getFinnhubKey() {
-    return (localStorage.getItem(FINNHUB_KEY_STORAGE) || '').trim();
+    return (localStorage.getItem(FINNHUB_KEY_STORAGE) || FINNHUB_DEFAULT_KEY || '').trim();
 }
 
 async function finnhubGet(path, params) {
@@ -140,7 +141,10 @@ async function loadFearGreed() {
 }
 
 /* ------------------------------ LATEST NEWS -------------------------------
-   #news-panel: CryptoCompare only, unchanged behavior. */
+   #news-panel: was CryptoCompare, but CryptoCompare's /news endpoint now
+   requires a paid API key (started returning "you need a valid auth key"
+   with no key), so this panel is fed by Finnhub's crypto category instead
+   — same key already used elsewhere on this tab, no extra setup needed. */
 
 const setNewsStatus = genericStatusSetter('news-status');
 
@@ -157,11 +161,10 @@ function timeAgo(unixSeconds) {
 async function loadNews() {
     setNewsStatus('loading…');
     try {
-        const res = await fetch('https://min-api.cryptocompare.com/data/v2/news/?lang=EN&sortOrder=latest');
-        if (!res.ok) throw new Error('CryptoCompare unreachable');
-        const json = await res.json();
-        const items = (json.Data || []).slice(0, 30);
-        if (items.length === 0) throw new Error('no articles returned');
+        const json = await finnhubGet('/news', { category: 'crypto' });
+        if (!Array.isArray(json) || json.length === 0) throw new Error('no articles returned');
+
+        const items = json.slice(0, 30).sort((a, b) => b.datetime - a.datetime);
 
         const list = document.getElementById('news-list');
         list.innerHTML = '';
@@ -171,16 +174,16 @@ async function loadNews() {
             a.href = item.url; a.target = '_blank'; a.rel = 'noopener';
 
             const img = document.createElement('img');
-            img.src = item.imageurl || ''; img.alt = '';
+            img.src = item.image || ''; img.alt = '';
             img.onerror = () => { img.style.display = 'none'; };
 
             const textWrap = document.createElement('div');
             const title = document.createElement('div');
             title.className = 'news-item-title';
-            title.textContent = item.title;
+            title.textContent = item.headline;
             const meta = document.createElement('div');
             meta.className = 'news-item-meta';
-            meta.textContent = `${item.source_info?.name || item.source || 'Unknown'} · ${timeAgo(item.published_on)}`;
+            meta.textContent = `${item.source || 'Finnhub'} · ${timeAgo(item.datetime)}`;
             textWrap.appendChild(title); textWrap.appendChild(meta);
 
             a.appendChild(img); a.appendChild(textWrap);
