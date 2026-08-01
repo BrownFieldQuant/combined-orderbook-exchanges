@@ -31,47 +31,50 @@ let fredChart = null;
 let eventStudyChart = null;
 
 /* ------------------------ TERMINAL / DESK STYLING ------------------------
-   Shared look for every Highcharts instance on this tab: monospace axis
+   Shared look for every Highcharts instance on the desk: monospace axis
    labels (Bloomberg/desk terminals are mono, not sans), thin hairline
-   grid, crosshair on hover, gold accent line — same palette as the rest
-   of the desk shell. Centralized here so every chart on this tab stays
-   visually consistent and any future chart just reuses CHART_THEME.
+   grid, crosshair on hover, gold accent line. Attached to `window` and
+   guarded so multiple tab scripts (macro.js, news.js, ...) can each
+   define this block without a duplicate-declaration error — whichever
+   script loads first wins, the rest just reuse it.
 */
-const CHART_MONO = "'IBM Plex Mono','Consolas','SFMono-Regular',monospace";
-const CHART_THEME = {
-    chart: { animation: false, backgroundColor: 'transparent', style: { fontFamily: CHART_MONO } },
-    credits: { enabled: false },
-    xAxis: {
-        type: 'datetime',
-        labels: { style: { fontSize: '9px', color: '#8a93a6', fontFamily: CHART_MONO } },
-        lineColor: 'rgba(201,151,90,0.25)',
-        tickColor: 'rgba(201,151,90,0.25)',
-        crosshair: { color: 'rgba(201,151,90,0.35)', dashStyle: 'Solid', width: 1 }
-    },
-    yAxis: {
-        labels: { style: { fontSize: '9px', color: '#d7dde5', fontFamily: CHART_MONO } },
-        gridLineColor: 'rgba(255,255,255,0.05)',
-        gridLineDashStyle: 'Dot'
-    },
-    tooltip: {
-        backgroundColor: '#0f2036',
-        borderColor: 'rgba(201,151,90,0.4)',
-        borderRadius: 2,
-        style: { fontFamily: CHART_MONO, fontSize: '11px', color: '#e7ebf1' }
-    }
-};
+if (typeof window.CHART_MONO === 'undefined') {
+    window.CHART_MONO = "'IBM Plex Mono','Consolas','SFMono-Regular',monospace";
+    window.CHART_THEME = {
+        chart: { animation: false, backgroundColor: 'transparent', style: { fontFamily: window.CHART_MONO } },
+        credits: { enabled: false },
+        xAxis: {
+            type: 'datetime',
+            labels: { style: { fontSize: '9px', color: '#8a93a6', fontFamily: window.CHART_MONO } },
+            lineColor: 'rgba(201,151,90,0.25)',
+            tickColor: 'rgba(201,151,90,0.25)',
+            crosshair: { color: 'rgba(201,151,90,0.35)', dashStyle: 'Solid', width: 1 }
+        },
+        yAxis: {
+            labels: { style: { fontSize: '9px', color: '#d7dde5', fontFamily: window.CHART_MONO } },
+            gridLineColor: 'rgba(255,255,255,0.05)',
+            gridLineDashStyle: 'Dot'
+        },
+        tooltip: {
+            backgroundColor: '#0f2036',
+            borderColor: 'rgba(201,151,90,0.4)',
+            borderRadius: 2,
+            style: { fontFamily: window.CHART_MONO, fontSize: '11px', color: '#e7ebf1' }
+        }
+    };
 
-/* Terminal-style status line: colored dot + uppercase state + mono
-   HH:MM:SS timestamp, e.g.  "● LIVE  14:32:07 · 620 pts (direct)" */
-function paintStatus(el, state, message) {
-    if (!el) return;
-    const colors = { live: '#3ecf8e', error: '#ef5350', busy: '#c9975a' };
-    const labels = { live: 'LIVE', error: 'ERROR', busy: 'LOADING' };
-    const dot = `<span style="color:${colors[state] || '#8a93a6'}">●</span>`;
-    const tag = `<span style="font-weight:700;letter-spacing:0.5px;">${labels[state] || ''}</span>`;
-    el.innerHTML = `${dot} ${tag}  <span style="opacity:0.7;">${message}</span>`;
-    el.style.fontFamily = CHART_MONO;
-    el.style.fontSize = '11px';
+    /* Terminal-style status line: colored dot + uppercase state + mono
+       message, e.g.  "● LIVE  14:32:07 · 620 pts (direct)" */
+    window.paintStatus = function (el, state, message) {
+        if (!el) return;
+        const colors = { live: '#3ecf8e', error: '#ef5350', busy: '#c9975a' };
+        const labels = { live: 'LIVE', error: 'ERROR', busy: 'LOADING' };
+        const dot = `<span style="color:${colors[state] || '#8a93a6'}">●</span>`;
+        const tag = `<span style="font-weight:700;letter-spacing:0.5px;">${labels[state] || ''}</span>`;
+        el.innerHTML = `${dot} ${tag}  <span style="opacity:0.7;">${message}</span>`;
+        el.style.fontFamily = window.CHART_MONO;
+        el.style.fontSize = '11px';
+    };
 }
 
 function getFredApiKey() {
@@ -81,7 +84,7 @@ function getFredApiKey() {
 function setFredStatus(text, isError) {
     const el = document.getElementById('fred-status');
     const state = isError ? 'error' : (/loading|…$/i.test(text) ? 'busy' : 'live');
-    paintStatus(el, state, text);
+    window.paintStatus(el, state, text);
 }
 
 // Tries FRED's own API directly first (v1-style ?api_key=, using your real
@@ -129,13 +132,13 @@ async function loadFredSeries() {
         if (data.length === 0) throw new Error('no observations returned — check the series ID');
 
         const options = {
-            ...CHART_THEME,
-            chart: { ...CHART_THEME.chart },
+            ...window.CHART_THEME,
+            chart: { ...window.CHART_THEME.chart },
             title: { text: null },
             legend: { enabled: false },
-            xAxis: { ...CHART_THEME.xAxis },
-            yAxis: { ...CHART_THEME.yAxis, title: { text: null }, labels: { ...CHART_THEME.yAxis.labels, formatter: function () { return Highcharts.numberFormat(this.value, 0, '.', ','); } } },
-            tooltip: { ...CHART_THEME.tooltip, valueDecimals: 2 },
+            xAxis: { ...window.CHART_THEME.xAxis },
+            yAxis: { ...window.CHART_THEME.yAxis, title: { text: null }, labels: { ...window.CHART_THEME.yAxis.labels, formatter: function () { return Highcharts.numberFormat(this.value, 0, '.', ','); } } },
+            tooltip: { ...window.CHART_THEME.tooltip, valueDecimals: 2 },
             series: [{ name: seriesId, type: 'line', data, color: '#c9975a', lineWidth: 1.4, marker: { enabled: false } }]
         };
 
@@ -157,7 +160,7 @@ async function loadFredSeries() {
 function setEventStudyStatus(text, isError) {
     const el = document.getElementById('event-study-status');
     const state = isError ? 'error' : (/loading|…$/i.test(text) ? 'busy' : 'live');
-    paintStatus(el, state, text);
+    window.paintStatus(el, state, text);
 }
 
 function getAllEvents() {
@@ -273,20 +276,20 @@ async function renderEventChart(row) {
     const eventEndMs = new Date(row.ev.to + 'T23:59:59Z').getTime();
 
     const options = {
-        ...CHART_THEME,
-        chart: { ...CHART_THEME.chart },
-        title: { text: `${asset} AROUND: ${row.ev.label.toUpperCase()}`, style: { fontSize: '11px', color: '#d7dde5', fontFamily: CHART_MONO, fontWeight: '700', letterSpacing: '0.4px' } },
+        ...window.CHART_THEME,
+        chart: { ...window.CHART_THEME.chart },
+        title: { text: `${asset} AROUND: ${row.ev.label.toUpperCase()}`, style: { fontSize: '11px', color: '#d7dde5', fontFamily: window.CHART_MONO, fontWeight: '700', letterSpacing: '0.4px' } },
         legend: { enabled: false },
         xAxis: {
-            ...CHART_THEME.xAxis,
+            ...window.CHART_THEME.xAxis,
             plotBands: [{ from: eventStartMs, to: eventEndMs, color: 'rgba(201, 151, 90, 0.08)' }],
             plotLines: [
-                { value: eventStartMs, color: '#c9975a', width: 1, dashStyle: 'Dash', label: { text: row.ev.label, style: { color: '#8a93a6', fontSize: '9px', fontFamily: CHART_MONO }, rotation: 0, y: 14 } },
+                { value: eventStartMs, color: '#c9975a', width: 1, dashStyle: 'Dash', label: { text: row.ev.label, style: { color: '#8a93a6', fontSize: '9px', fontFamily: window.CHART_MONO }, rotation: 0, y: 14 } },
                 { value: eventEndMs, color: '#c9975a', width: 1, dashStyle: 'Dash' }
             ]
         },
-        yAxis: { ...CHART_THEME.yAxis, title: { text: null } },
-        tooltip: { ...CHART_THEME.tooltip, valueDecimals: 4 },
+        yAxis: { ...window.CHART_THEME.yAxis, title: { text: null } },
+        tooltip: { ...window.CHART_THEME.tooltip, valueDecimals: 4 },
         series: [{ name: asset, type: 'line', data: series, color: '#c9975a', lineWidth: 1.4, marker: { enabled: false } }]
     };
 
@@ -305,7 +308,7 @@ let inflationExpChart = null;
 function setInflationExpStatus(text, isError) {
     const el = document.getElementById('inflation-exp-status');
     const state = isError ? 'error' : (/loading|…$/i.test(text) ? 'busy' : 'live');
-    paintStatus(el, state, text);
+    window.paintStatus(el, state, text);
 }
 
 async function loadInflationExpectations() {
@@ -326,13 +329,13 @@ async function loadInflationExpectations() {
         if (t5yifrData.length === 0 && michData.length === 0) throw new Error('no data returned for either series');
 
         const options = {
-            ...CHART_THEME,
-            chart: { ...CHART_THEME.chart },
+            ...window.CHART_THEME,
+            chart: { ...window.CHART_THEME.chart },
             title: { text: null },
-            legend: { itemStyle: { color: '#d7dde5', fontSize: '9px', fontFamily: CHART_MONO } },
-            xAxis: { ...CHART_THEME.xAxis },
-            yAxis: { ...CHART_THEME.yAxis, title: { text: 'PERCENT', style: { color: '#8a93a6', fontSize: '9px', fontFamily: CHART_MONO, letterSpacing: '0.5px' } } },
-            tooltip: { ...CHART_THEME.tooltip, shared: true, valueDecimals: 2 },
+            legend: { itemStyle: { color: '#d7dde5', fontSize: '9px', fontFamily: window.CHART_MONO } },
+            xAxis: { ...window.CHART_THEME.xAxis },
+            yAxis: { ...window.CHART_THEME.yAxis, title: { text: 'PERCENT', style: { color: '#8a93a6', fontSize: '9px', fontFamily: window.CHART_MONO, letterSpacing: '0.5px' } } },
+            tooltip: { ...window.CHART_THEME.tooltip, shared: true, valueDecimals: 2 },
             series: [
                 { name: '5Y5Y Breakeven Inflation (T5YIFR)', type: 'line', data: t5yifrData, color: '#c9975a', lineWidth: 1.4, marker: { enabled: false } },
                 { name: 'UMich Inflation Expectations (MICH)', type: 'line', data: michData, color: '#5aa9e6', lineWidth: 1.4, marker: { enabled: false } }
