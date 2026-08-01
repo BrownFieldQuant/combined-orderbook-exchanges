@@ -972,6 +972,9 @@
             #view-news.active {
                 display: grid;
             }
+            #finnhub-key-panel, #finnhub-news-panel, #econ-calendar-panel, #earnings-calendar-panel {
+                grid-column: 1 / -1;
+            }
             @media (max-width: 1000px) {
                 #view-news.active {
                     grid-template-columns: 1fr;
@@ -1491,6 +1494,76 @@
             display: none;
         }
 
+        #finnhub-key-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        #finnhub-api-key-input {
+            width: 220px;
+        }
+        #finnhub-key-note {
+            font-size: 9px;
+            color: #6b7280;
+        }
+        #finnhub-key-note a {
+            color: var(--accent);
+        }
+        #finnhub-news-controls, #econ-calendar-controls, #earnings-calendar-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+        }
+        #finnhub-news-status, #econ-calendar-status, #earnings-calendar-status {
+            font-size: 9px;
+            font-weight: bold;
+            color: #6b7280;
+        }
+        #finnhub-news-table-wrap, #econ-calendar-table-wrap, #earnings-calendar-table-wrap {
+            overflow-x: auto;
+            max-height: 360px;
+        }
+        #finnhub-news-table, #econ-calendar-table, #earnings-calendar-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 10px;
+        }
+        #finnhub-news-table th, #finnhub-news-table td,
+        #econ-calendar-table th, #econ-calendar-table td,
+        #earnings-calendar-table th, #earnings-calendar-table td {
+            border: 1px solid #232838;
+            padding: 4px 8px;
+            text-align: right;
+            white-space: nowrap;
+        }
+        #finnhub-news-table td:nth-child(2) {
+            text-align: left;
+            white-space: normal;
+            max-width: 420px;
+        }
+        #finnhub-news-table th:nth-child(1), #finnhub-news-table td:nth-child(1),
+        #finnhub-news-table th:nth-child(3), #finnhub-news-table td:nth-child(3),
+        #finnhub-news-table th:nth-child(4), #finnhub-news-table td:nth-child(4),
+        #econ-calendar-table th:nth-child(1), #econ-calendar-table td:nth-child(1),
+        #econ-calendar-table th:nth-child(2), #econ-calendar-table td:nth-child(2),
+        #econ-calendar-table th:nth-child(3), #econ-calendar-table td:nth-child(3),
+        #earnings-calendar-table th:nth-child(1), #earnings-calendar-table td:nth-child(1),
+        #earnings-calendar-table th:nth-child(2), #earnings-calendar-table td:nth-child(2),
+        #earnings-calendar-table th:nth-child(3), #earnings-calendar-table td:nth-child(3) {
+            text-align: left;
+        }
+        #finnhub-news-table th, #econ-calendar-table th, #earnings-calendar-table th {
+            background: #171b26;
+            color: var(--accent);
+            position: sticky;
+            top: 0;
+        }
+        .impact-high { color: #ef5350; font-weight: bold; }
+        .impact-medium { color: #e5c07b; }
+        .impact-low { color: #6b7280; }
+
         }
 
         html[data-theme="light"] {
@@ -1977,6 +2050,9 @@
             }
             #view-news.active {
                 display: grid;
+            }
+            #finnhub-key-panel, #finnhub-news-panel, #econ-calendar-panel, #earnings-calendar-panel {
+                grid-column: 1 / -1;
             }
             @media (max-width: 1000px) {
                 #view-news.active {
@@ -2496,6 +2572,76 @@
         #tradermap-embed-panel.collapsed #tradermap-iframe {
             display: none;
         }
+
+        #finnhub-key-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        #finnhub-api-key-input {
+            width: 220px;
+        }
+        #finnhub-key-note {
+            font-size: 9px;
+            color: #5b6472;
+        }
+        #finnhub-key-note a {
+            color: var(--accent);
+        }
+        #finnhub-news-controls, #econ-calendar-controls, #earnings-calendar-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 6px 0;
+        }
+        #finnhub-news-status, #econ-calendar-status, #earnings-calendar-status {
+            font-size: 9px;
+            font-weight: bold;
+            color: #5b6472;
+        }
+        #finnhub-news-table-wrap, #econ-calendar-table-wrap, #earnings-calendar-table-wrap {
+            overflow-x: auto;
+            max-height: 360px;
+        }
+        #finnhub-news-table, #econ-calendar-table, #earnings-calendar-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 10px;
+        }
+        #finnhub-news-table th, #finnhub-news-table td,
+        #econ-calendar-table th, #econ-calendar-table td,
+        #earnings-calendar-table th, #earnings-calendar-table td {
+            border: 1px solid #dcdfe4;
+            padding: 4px 8px;
+            text-align: right;
+            white-space: nowrap;
+        }
+        #finnhub-news-table td:nth-child(2) {
+            text-align: left;
+            white-space: normal;
+            max-width: 420px;
+        }
+        #finnhub-news-table th:nth-child(1), #finnhub-news-table td:nth-child(1),
+        #finnhub-news-table th:nth-child(3), #finnhub-news-table td:nth-child(3),
+        #finnhub-news-table th:nth-child(4), #finnhub-news-table td:nth-child(4),
+        #econ-calendar-table th:nth-child(1), #econ-calendar-table td:nth-child(1),
+        #econ-calendar-table th:nth-child(2), #econ-calendar-table td:nth-child(2),
+        #econ-calendar-table th:nth-child(3), #econ-calendar-table td:nth-child(3),
+        #earnings-calendar-table th:nth-child(1), #earnings-calendar-table td:nth-child(1),
+        #earnings-calendar-table th:nth-child(2), #earnings-calendar-table td:nth-child(2),
+        #earnings-calendar-table th:nth-child(3), #earnings-calendar-table td:nth-child(3) {
+            text-align: left;
+        }
+        #finnhub-news-table th, #econ-calendar-table th, #earnings-calendar-table th {
+            background: #eef0f3;
+            color: var(--accent);
+            position: sticky;
+            top: 0;
+        }
+        .impact-high { color: #c62828; font-weight: bold; }
+        .impact-medium { color: #e5c07b; }
+        .impact-low { color: #5b6472; }
 
         }
 
@@ -3329,6 +3475,63 @@
                 <span id="news-status"></span>
             </div>
             <div id="news-list"></div>
+        </div>
+
+        <div id="finnhub-key-panel" class="quant-cell">
+            <div class="quant-cell-title">Finnhub API Key</div>
+            <div id="finnhub-key-row">
+                <input type="text" id="finnhub-api-key-input" placeholder="Your free Finnhub API key">
+                <button id="finnhub-key-save-btn">Save Key</button>
+                <span id="finnhub-key-note">Free key at <a href="https://finnhub.io/register" target="_blank" rel="noopener">finnhub.io</a> — stored only in this browser, never sent anywhere else. Powers the 3 tables below.</span>
+            </div>
+        </div>
+
+        <div id="finnhub-news-panel" class="quant-cell">
+            <div class="quant-cell-title">Market News — Finnhub</div>
+            <div id="finnhub-news-controls">
+                <select id="finnhub-news-category">
+                    <option value="general">General</option>
+                    <option value="forex">Forex</option>
+                    <option value="crypto">Crypto</option>
+                    <option value="merger">Merger</option>
+                </select>
+                <button id="finnhub-news-refresh-btn">Refresh</button>
+                <span id="finnhub-news-status"></span>
+            </div>
+            <div id="finnhub-news-table-wrap">
+                <table id="finnhub-news-table">
+                    <thead><tr><th>Time</th><th>Headline</th><th>Source</th><th>Category</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="econ-calendar-panel" class="quant-cell">
+            <div class="quant-cell-title">Economic Calendar — Finnhub</div>
+            <div id="econ-calendar-controls">
+                <button id="econ-calendar-refresh-btn">Refresh (±7 days)</button>
+                <span id="econ-calendar-status"></span>
+            </div>
+            <div id="econ-calendar-table-wrap">
+                <table id="econ-calendar-table">
+                    <thead><tr><th>Date</th><th>Country</th><th>Event</th><th>Impact</th><th>Actual</th><th>Estimate</th><th>Prev</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="earnings-calendar-panel" class="quant-cell">
+            <div class="quant-cell-title">Earnings Calendar — Finnhub</div>
+            <div id="earnings-calendar-controls">
+                <button id="earnings-calendar-refresh-btn">Refresh (±7 days)</button>
+                <span id="earnings-calendar-status"></span>
+            </div>
+            <div id="earnings-calendar-table-wrap">
+                <table id="earnings-calendar-table">
+                    <thead><tr><th>Date</th><th>Symbol</th><th>Session</th><th>EPS Est.</th><th>EPS Actual</th><th>Revenue Est.</th><th>Revenue Actual</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
