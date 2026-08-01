@@ -3054,6 +3054,15 @@
         .econ-impact-high { background: rgba(239,83,80,0.18); color: #ef5350; }
         .econ-impact-med { background: rgba(229,151,63,0.18); color: #e5893f; }
         .econ-impact-low { background: rgba(154,164,182,0.18); color: #8a93a6; }
+
+        .quant-subtitle {
+            font-family: 'Inter', -apple-system, sans-serif;
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+            opacity: 0.65; margin: 18px 0 6px; padding-top: 10px; border-top: 1px dotted rgba(255,255,255,0.08);
+        }
+        #institutional-controls { display: flex; align-items: center; gap: 8px; padding: 6px 0 14px; flex-wrap: wrap; }
+        #institutional-symbol-input { text-transform: uppercase; width: 140px; }
+        #inst-press-list .news-item-title { font-size: 12px; }
     </style>
 </head>
 <body>
@@ -3082,7 +3091,7 @@
         <button class="tab-btn" data-tab="quant">Quant Analytics</button>
         <button class="tab-btn" data-tab="compare">Asset Compare</button>
         <button class="tab-btn" data-tab="onchain">On-Chain &amp; Derivatives</button>
-        <button class="tab-btn" data-tab="news">News &amp; Sentiment</button>
+        <button class="tab-btn" data-tab="news">News &amp; Institutional</button>
         <button class="tab-btn" data-tab="tradfi">TradFi</button>
         <button class="tab-btn" data-tab="footprint">Footprint</button>
         <button class="tab-btn" data-tab="macro">Macro Liquidity</button>
@@ -3524,6 +3533,47 @@
                     <tbody></tbody>
                 </table>
             </div>
+        </div>
+
+        <div id="institutional-panel" class="quant-cell">
+            <div class="quant-cell-title">Institutional Activity — Finnhub</div>
+            <div id="institutional-controls">
+                <input type="text" id="institutional-symbol-input" value="COIN" placeholder="Symbol e.g. COIN, MSTR, AAPL">
+                <button id="institutional-refresh-btn">Load</button>
+                <span id="institutional-status"></span>
+            </div>
+
+            <div id="institutional-summary">
+                <div class="quant-row"><span>News Sentiment (Bullish/Bearish)</span><span id="inst-news-sentiment">-</span></div>
+                <div class="quant-row"><span>Insider Sentiment (MSPR, latest month)</span><span id="inst-insider-sentiment">-</span></div>
+            </div>
+
+            <div class="quant-subtitle">Insider Transactions</div>
+            <table id="inst-insider-table" class="quant-data-table">
+                <thead><tr><th>Filed</th><th>Insider</th><th>Change</th><th>Shares</th><th>Price</th></tr></thead>
+                <tbody></tbody>
+            </table>
+
+            <div class="quant-subtitle">Institutional Ownership — Top Holders (13-F)</div>
+            <table id="inst-ownership-table" class="quant-data-table">
+                <thead><tr><th>Investor</th><th>Shares</th><th>Change</th><th>% Portfolio</th></tr></thead>
+                <tbody></tbody>
+            </table>
+
+            <div class="quant-subtitle">Congressional Trading</div>
+            <table id="inst-congress-table" class="quant-data-table">
+                <thead><tr><th>Filed</th><th>Member</th><th>Type</th><th>Amount</th></tr></thead>
+                <tbody></tbody>
+            </table>
+
+            <div class="quant-subtitle">Lobbying</div>
+            <table id="inst-lobbying-table" class="quant-data-table">
+                <thead><tr><th>Year/Q</th><th>Client</th><th>Issue</th><th>Amount</th></tr></thead>
+                <tbody></tbody>
+            </table>
+
+            <div class="quant-subtitle">Press Releases</div>
+            <div id="inst-press-list"></div>
         </div>
     </div>
 
