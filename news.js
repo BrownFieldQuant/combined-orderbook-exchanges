@@ -144,15 +144,172 @@ async function loadNews() {
     }
 }
 
+/* --------------------------------- FINNHUB --------------------------------- */
+
+const FINNHUB_KEY_STORAGE = 'news_finnhub_api_key';
+
+function getFinnhubApiKey() {
+    return localStorage.getItem(FINNHUB_KEY_STORAGE) || '';
+}
+
+function setFinnhubStatus(elId, text, isError) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.textContent = text;
+    el.style.color = isError ? '#ef5350' : '#6b7280';
+}
+
+function requireFinnhubKey(statusElId) {
+    const key = getFinnhubApiKey();
+    if (!key) {
+        setFinnhubStatus(statusElId, 'paste your free Finnhub API key above and click Save Key', true);
+        return null;
+    }
+    return key;
+}
+
+function todayISO(offsetDays) {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() + (offsetDays || 0));
+    return d.toISOString().slice(0, 10);
+}
+
+function finnhubTimeAgo(unixSeconds) {
+    const diffMs = Date.now() - unixSeconds * 1000;
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+}
+
+async function loadFinnhubNews() {
+    const key = requireFinnhubKey('finnhub-news-status');
+    if (!key) return;
+    const category = document.getElementById('finnhub-news-category')?.value || 'general';
+    setFinnhubStatus('finnhub-news-status', 'loading…');
+
+    try {
+        const res = await fetch(`https://finnhub.io/api/v1/news?category=${category}&token=${key}`);
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+        if (!Array.isArray(json)) throw new Error('unexpected response shape');
+
+        const rows = json.slice(0, 40);
+        const tbody = document.querySelector('#finnhub-news-table tbody');
+        tbody.innerHTML = rows.map(item => `
+            <tr>
+                <td>${finnhubTimeAgo(item.datetime)}</td>
+                <td><a href="${item.url}" target="_blank" rel="noopener">${item.headline}</a></td>
+                <td>${item.source || '-'}</td>
+                <td>${item.category || category}</td>
+            </tr>
+        `).join('');
+
+        setFinnhubStatus('finnhub-news-status', 'updated ' + new Date().toLocaleTimeString() + ` · ${rows.length} articles`);
+    } catch (e) {
+        setFinnhubStatus('finnhub-news-status', 'failed — ' + e.message, true);
+    }
+}
+
+async function loadEconomicCalendar() {
+    const key = requireFinnhubKey('econ-calendar-status');
+    if (!key) return;
+    setFinnhubStatus('econ-calendar-status', 'loading…');
+
+    try {
+        const from = todayISO(-7);
+        const to = todayISO(7);
+        const res = await fetch(`https://finnhub.io/api/v1/calendar/economic?from=${from}&to=${to}&token=${key}`);
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+        const rows = (json.economicCalendar || []).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+        const tbody = document.querySelector('#econ-calendar-table tbody');
+        tbody.innerHTML = rows.map(ev => {
+            const impact = (ev.impact || '').toLowerCase();
+            const impactClass = impact.includes('high') ? 'impact-high' : (impact.includes('medium') || impact.includes('med') ? 'impact-medium' : 'impact-low');
+            return `<tr>
+                <td>${ev.time || '-'}</td>
+                <td>${ev.country || '-'}</td>
+                <td>${ev.event || '-'}</td>
+                <td class="${impactClass}">${ev.impact || '-'}</td>
+                <td>${ev.actual ?? '-'}</td>
+                <td>${ev.estimate ?? '-'}</td>
+                <td>${ev.prev ?? '-'}</td>
+            </tr>`;
+        }).join('');
+
+        setFinnhubStatus('econ-calendar-status', 'updated ' + new Date().toLocaleTimeString() + ` · ${rows.length} events`);
+    } catch (e) {
+        setFinnhubStatus('econ-calendar-status', 'failed — ' + e.message, true);
+    }
+}
+
+async function loadEarningsCalendar() {
+    const key = requireFinnhubKey('earnings-calendar-status');
+    if (!key) return;
+    setFinnhubStatus('earnings-calendar-status', 'loading…');
+
+    try {
+        const from = todayISO(-7);
+        const to = todayISO(7);
+        const res = await fetch(`https://finnhub.io/api/v1/calendar/earnings?from=${from}&to=${to}&token=${key}`);
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
+        const rows = (json.earningsCalendar || []).sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
+        const tbody = document.querySelector('#earnings-calendar-table tbody');
+        tbody.innerHTML = rows.map(ev => `
+            <tr>
+                <td>${ev.date || '-'}</td>
+                <td>${ev.symbol || '-'}</td>
+                <td>${ev.hour || '-'}</td>
+                <td>${ev.epsEstimate ?? '-'}</td>
+                <td>${ev.epsActual ?? '-'}</td>
+                <td>${ev.revenueEstimate ? ev.revenueEstimate.toLocaleString() : '-'}</td>
+                <td>${ev.revenueActual ? ev.revenueActual.toLocaleString() : '-'}</td>
+            </tr>
+        `).join('');
+
+        setFinnhubStatus('earnings-calendar-status', 'updated ' + new Date().toLocaleTimeString() + ` · ${rows.length} reports`);
+    } catch (e) {
+        setFinnhubStatus('earnings-calendar-status', 'failed — ' + e.message, true);
+    }
+}
+
 /* --------------------------------- INIT ---------------------------------- */
 
 window.initNewsTab = function () {
     loadFearGreed();
     loadNews();
+    if (getFinnhubApiKey()) {
+        loadFinnhubNews();
+        loadEconomicCalendar();
+        loadEarningsCalendar();
+    }
     if (fngHistoryChart) fngHistoryChart.reflow();
 };
 
 document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('fng-refresh-btn')?.addEventListener('click', loadFearGreed);
     document.getElementById('news-refresh-btn')?.addEventListener('click', loadNews);
+
+    const savedKey = getFinnhubApiKey();
+    if (savedKey) {
+        const input = document.getElementById('finnhub-api-key-input');
+        if (input) input.value = savedKey;
+    }
+    document.getElementById('finnhub-key-save-btn')?.addEventListener('click', () => {
+        const input = document.getElementById('finnhub-api-key-input');
+        if (!input) return;
+        localStorage.setItem(FINNHUB_KEY_STORAGE, input.value.trim());
+        loadFinnhubNews();
+        loadEconomicCalendar();
+        loadEarningsCalendar();
+    });
+    document.getElementById('finnhub-news-refresh-btn')?.addEventListener('click', loadFinnhubNews);
+    document.getElementById('finnhub-news-category')?.addEventListener('change', loadFinnhubNews);
+    document.getElementById('econ-calendar-refresh-btn')?.addEventListener('click', loadEconomicCalendar);
+    document.getElementById('earnings-calendar-refresh-btn')?.addEventListener('click', loadEarningsCalendar);
 });
