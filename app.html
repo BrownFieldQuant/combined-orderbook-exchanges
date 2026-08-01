@@ -3063,6 +3063,14 @@
         #institutional-controls { display: flex; align-items: center; gap: 8px; padding: 6px 0 14px; flex-wrap: wrap; }
         #institutional-symbol-input { text-transform: uppercase; width: 140px; }
         #inst-press-list .news-item-title { font-size: 12px; }
+        .tm-suite-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 14px; margin-top: 14px;
+        }
+        .tm-suite-cell { padding: 12px; }
+        .tm-suite-cell iframe { width: 100%; height: 420px; border: none; border-radius: 6px; }
+        .tm-suite-cell .quant-cell-title { display: flex; align-items: center; justify-content: space-between; }
+        .tm-suite-cell .quant-cell-title button { font-size: 10px; padding: 3px 8px; }
     </style>
 </head>
 <body>
@@ -3754,6 +3762,71 @@
                 <div id="footprint-cvd-chart" class="quant-cell-chart"></div>
             </div>
         </div>
+
+        <div id="tradermap-suite-note">
+            TraderMap Suite — additional tools from tradermap.io, embedded via their confirmed <code>tradermap.io/widgets/&lt;slug&gt;?theme=dark</code> pattern. Slugs below are our best-effort kebab-case guess from their nav menu labels (Whales, Indicators, Hyperliquid, Prediction, Summary, More ▾) — if any panel renders blank, the slug just needs a small correction; send the exact one and it's a one-line fix. Skipped: <b>Economic Calendar</b> (duplicate of the Finnhub one on the News tab), <b>Liquidation Map</b> and <b>Whales/BTC Trades</b> (already embedded above).
+        </div>
+        <div class="tm-suite-grid">
+            <div class="quant-cell tm-suite-cell">
+                <div class="quant-cell-title">Indicators <button class="tm-toggle-btn" data-target="tm-indicators-iframe">Hide</button></div>
+                <iframe id="tm-indicators-iframe" src="https://tradermap.io/widgets/indicators?theme=dark" title="TraderMap Indicators" loading="lazy"></iframe>
+            </div>
+            <div class="quant-cell tm-suite-cell">
+                <div class="quant-cell-title">Hyperliquid <button class="tm-toggle-btn" data-target="tm-hyperliquid-iframe">Hide</button></div>
+                <iframe id="tm-hyperliquid-iframe" src="https://tradermap.io/widgets/hyperliquid?theme=dark" title="TraderMap Hyperliquid" loading="lazy"></iframe>
+            </div>
+            <div class="quant-cell tm-suite-cell">
+                <div class="quant-cell-title">Prediction <button class="tm-toggle-btn" data-target="tm-prediction-iframe">Hide</button></div>
+                <iframe id="tm-prediction-iframe" src="https://tradermap.io/widgets/prediction?theme=dark" title="TraderMap Prediction" loading="lazy"></iframe>
+            </div>
+            <div class="quant-cell tm-suite-cell">
+                <div class="quant-cell-title">Summary <button class="tm-toggle-btn" data-target="tm-summary-iframe">Hide</button></div>
+                <iframe id="tm-summary-iframe" src="https://tradermap.io/widgets/summary?theme=dark" title="TraderMap Summary" loading="lazy"></iframe>
+            </div>
+            <div class="quant-cell tm-suite-cell">
+                <div class="quant-cell-title">AI Trader <button class="tm-toggle-btn" data-target="tm-ai-trader-iframe">Hide</button></div>
+                <iframe id="tm-ai-trader-iframe" src="https://tradermap.io/widgets/ai-trader?theme=dark" title="TraderMap AI Trader" loading="lazy"></iframe>
+            </div>
+            <div class="quant-cell tm-suite-cell">
+                <div class="quant-cell-title">RSI Heatmap <button class="tm-toggle-btn" data-target="tm-rsi-heatmap-iframe">Hide</button></div>
+                <iframe id="tm-rsi-heatmap-iframe" src="https://tradermap.io/widgets/rsi-heatmap?theme=dark" title="TraderMap RSI Heatmap" loading="lazy"></iframe>
+            </div>
+            <div class="quant-cell tm-suite-cell">
+                <div class="quant-cell-title">Bubbles <button class="tm-toggle-btn" data-target="tm-bubbles-iframe">Hide</button></div>
+                <iframe id="tm-bubbles-iframe" src="https://tradermap.io/widgets/bubbles?theme=dark" title="TraderMap Bubbles" loading="lazy"></iframe>
+            </div>
+            <div class="quant-cell tm-suite-cell">
+                <div class="quant-cell-title">Leaderboard <button class="tm-toggle-btn" data-target="tm-leaderboard-iframe">Hide</button></div>
+                <iframe id="tm-leaderboard-iframe" src="https://tradermap.io/widgets/leaderboard?theme=dark" title="TraderMap Leaderboard" loading="lazy"></iframe>
+            </div>
+            <div class="quant-cell tm-suite-cell">
+                <div class="quant-cell-title">Altcoin Index <button class="tm-toggle-btn" data-target="tm-altcoin-index-iframe">Hide</button></div>
+                <iframe id="tm-altcoin-index-iframe" src="https://tradermap.io/widgets/altcoin-index?theme=dark" title="TraderMap Altcoin Index" loading="lazy"></iframe>
+            </div>
+            <div class="quant-cell tm-suite-cell">
+                <div class="quant-cell-title">ETF Flows <button class="tm-toggle-btn" data-target="tm-etf-flows-iframe">Hide</button></div>
+                <iframe id="tm-etf-flows-iframe" src="https://tradermap.io/widgets/etf-flows?theme=dark" title="TraderMap ETF Flows" loading="lazy"></iframe>
+            </div>
+            <div class="quant-cell tm-suite-cell">
+                <div class="quant-cell-title">Investment Calculator <button class="tm-toggle-btn" data-target="tm-investment-calculator-iframe">Hide</button></div>
+                <iframe id="tm-investment-calculator-iframe" src="https://tradermap.io/widgets/investment-calculator?theme=dark" title="TraderMap Investment Calculator" loading="lazy"></iframe>
+            </div>
+            <div class="quant-cell tm-suite-cell">
+                <div class="quant-cell-title">Insights <button class="tm-toggle-btn" data-target="tm-insights-iframe">Hide</button></div>
+                <iframe id="tm-insights-iframe" src="https://tradermap.io/widgets/insights?theme=dark" title="TraderMap Insights" loading="lazy"></iframe>
+            </div>
+        </div>
+        <script>
+            document.querySelectorAll('.tm-toggle-btn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const iframe = document.getElementById(this.dataset.target);
+                    if (!iframe) return;
+                    const hidden = iframe.style.display === 'none';
+                    iframe.style.display = hidden ? '' : 'none';
+                    this.textContent = hidden ? 'Hide' : 'Show';
+                });
+            });
+        </script>
 
         <div id="footprint-panel" class="quant-cell">
             <div class="quant-cell-title">Footprint — <span id="footprint-symbol-label">-</span></div>
