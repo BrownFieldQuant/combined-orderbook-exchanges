@@ -429,4 +429,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!keyInput) return;
         localStorage.setItem(RL_OPENROUTER_KEY_STORAGE, keyInput.value.trim());
     });
+
+    const learnBtn = document.getElementById('rl-learn-toggle-btn');
+    const learnPanel = document.getElementById('rl-learn-panel');
+    learnBtn?.addEventListener('click', () => {
+        const isHidden = learnPanel.style.display === 'none';
+        learnPanel.style.display = isHidden ? 'block' : 'none';
+        learnBtn.textContent = isHidden ? 'Hide explanation' : 'Learn about this tab';
+    });
 });
