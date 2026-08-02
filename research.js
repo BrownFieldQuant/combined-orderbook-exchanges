@@ -1155,6 +1155,9 @@ function initTabs() {
             if (btn.dataset.tab === 'macro' && typeof window.initMacroTab === 'function') {
                 window.initMacroTab();
             }
+            if (btn.dataset.tab === 'researchlab' && typeof window.initResearchlabTab === 'function') {
+                window.initResearchlabTab();
+            }
         });
     });
 }
