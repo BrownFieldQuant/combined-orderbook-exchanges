@@ -1554,6 +1554,165 @@
 
         }
 
+        #rl-note {
+            color: #6b7280;
+            font-size: 9px;
+            margin-bottom: 6px;
+        }
+        #rl-controls-grid {
+            display: flex;
+            align-items: flex-end;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+        .rl-control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .rl-control-group label {
+            font-size: 9px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .rl-control-actions button {
+            padding: 6px 16px;
+        }
+        #rl-status {
+            font-size: 9px;
+            font-weight: bold;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+        #rl-progress-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.06);
+            margin-top: 4px;
+            overflow: hidden;
+        }
+        #rl-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent);
+            transition: width 0.2s linear;
+        }
+        #rl-stats-label {
+            color: var(--accent);
+        }
+        #rl-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: #232838;
+            border: 1px solid #232838;
+            margin-top: 6px;
+        }
+        .rl-stat-cell {
+            background: #11151d;
+            padding: 8px 10px;
+        }
+        .rl-stat-label {
+            font-size: 9px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .rl-stat-value {
+            font-size: 14px;
+            font-weight: 700;
+            margin-top: 2px;
+            font-variant-numeric: tabular-nums;
+        }
+        #rl-stats-footnote {
+            font-size: 9px;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+        .rl-grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        @media (max-width: 1000px) {
+            .rl-grid-2col {
+                grid-template-columns: 1fr;
+            }
+        }
+        #rl-session-table-wrap {
+            overflow-x: auto;
+        }
+        #rl-session-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 10px;
+        }
+        #rl-session-table th, #rl-session-table td {
+            border: 1px solid #232838;
+            padding: 4px 8px;
+            text-align: right;
+            white-space: nowrap;
+        }
+        #rl-session-table th:first-child, #rl-session-table td:first-child {
+            text-align: left;
+        }
+        #rl-session-table th {
+            background: #171b26;
+            color: var(--accent);
+        }
+        #rl-gap-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1px;
+            background: #232838;
+            border: 1px solid #232838;
+            margin-top: 6px;
+        }
+        #rl-dist-chart, #rl-seasonality-chart {
+            height: 260px;
+        }
+        #rl-hourly-chart {
+            height: 220px;
+        }
+        #rl-ai-key-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        #rl-openrouter-key-input {
+            width: 240px;
+        }
+        #rl-ai-key-note {
+            font-size: 9px;
+            color: #6b7280;
+        }
+        #rl-ai-key-note a {
+            color: var(--accent);
+        }
+
+        .rl-tip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+            color: var(--accent);
+            font-size: 8px;
+            font-weight: 700;
+            cursor: help;
+            margin-left: 3px;
+            line-height: 1;
+        }
+        .rl-tip:hover {
+            background: var(--accent);
+            color: #191008;
+        }
+
         html[data-theme="light"] {
                     html, body {
                 background: #f4f5f7;
@@ -2633,6 +2792,165 @@
 
         }
 
+        #rl-note {
+            color: #5b6472;
+            font-size: 9px;
+            margin-bottom: 6px;
+        }
+        #rl-controls-grid {
+            display: flex;
+            align-items: flex-end;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 6px;
+        }
+        .rl-control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .rl-control-group label {
+            font-size: 9px;
+            color: #5b6472;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .rl-control-actions button {
+            padding: 6px 16px;
+        }
+        #rl-status {
+            font-size: 9px;
+            font-weight: bold;
+            color: #5b6472;
+            margin-top: 8px;
+        }
+        #rl-progress-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(0,0,0,0.05);
+            margin-top: 4px;
+            overflow: hidden;
+        }
+        #rl-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent);
+            transition: width 0.2s linear;
+        }
+        #rl-stats-label {
+            color: var(--accent);
+        }
+        #rl-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: #dcdfe4;
+            border: 1px solid #dcdfe4;
+            margin-top: 6px;
+        }
+        .rl-stat-cell {
+            background: #ffffff;
+            padding: 8px 10px;
+        }
+        .rl-stat-label {
+            font-size: 9px;
+            color: #5b6472;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .rl-stat-value {
+            font-size: 14px;
+            font-weight: 700;
+            margin-top: 2px;
+            font-variant-numeric: tabular-nums;
+        }
+        #rl-stats-footnote {
+            font-size: 9px;
+            color: #5b6472;
+            margin-top: 8px;
+        }
+        .rl-grid-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        @media (max-width: 1000px) {
+            .rl-grid-2col {
+                grid-template-columns: 1fr;
+            }
+        }
+        #rl-session-table-wrap {
+            overflow-x: auto;
+        }
+        #rl-session-table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 10px;
+        }
+        #rl-session-table th, #rl-session-table td {
+            border: 1px solid #dcdfe4;
+            padding: 4px 8px;
+            text-align: right;
+            white-space: nowrap;
+        }
+        #rl-session-table th:first-child, #rl-session-table td:first-child {
+            text-align: left;
+        }
+        #rl-session-table th {
+            background: #eef0f3;
+            color: var(--accent);
+        }
+        #rl-gap-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1px;
+            background: #dcdfe4;
+            border: 1px solid #dcdfe4;
+            margin-top: 6px;
+        }
+        #rl-dist-chart, #rl-seasonality-chart {
+            height: 260px;
+        }
+        #rl-hourly-chart {
+            height: 220px;
+        }
+        #rl-ai-key-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        #rl-openrouter-key-input {
+            width: 240px;
+        }
+        #rl-ai-key-note {
+            font-size: 9px;
+            color: #5b6472;
+        }
+        #rl-ai-key-note a {
+            color: var(--accent);
+        }
+
+        .rl-tip {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.06);
+            color: var(--accent);
+            font-size: 8px;
+            font-weight: 700;
+            cursor: help;
+            margin-left: 3px;
+            line-height: 1;
+        }
+        .rl-tip:hover {
+            background: var(--accent);
+            color: #191008;
+        }
+
         #theme-select {
             font-size: 10px;
             margin-left: 12px;
@@ -3049,28 +3367,6 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb), 0.35); }
         ::-webkit-scrollbar-thumb:hover { background: rgba(var(--accent-rgb), 0.6); }
-        /* Economic Calendar impact badge — used by news.js, CSS was missing */
-        .econ-impact { font-family: 'Inter', -apple-system, sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 0.5px; padding: 2px 6px; border-radius: 2px; }
-        .econ-impact-high { background: rgba(239,83,80,0.18); color: #ef5350; }
-        .econ-impact-med { background: rgba(229,151,63,0.18); color: #e5893f; }
-        .econ-impact-low { background: rgba(154,164,182,0.18); color: #8a93a6; }
-
-        .quant-subtitle {
-            font-family: 'Inter', -apple-system, sans-serif;
-            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
-            opacity: 0.65; margin: 18px 0 6px; padding-top: 10px; border-top: 1px dotted rgba(255,255,255,0.08);
-        }
-        #institutional-controls { display: flex; align-items: center; gap: 8px; padding: 6px 0 14px; flex-wrap: wrap; }
-        #institutional-symbol-input { text-transform: uppercase; width: 140px; }
-        #inst-press-list .news-item-title { font-size: 12px; }
-        .tm-suite-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-            gap: 14px; margin-top: 14px;
-        }
-        .tm-suite-cell { padding: 12px; }
-        .tm-suite-cell iframe { width: 100%; height: 420px; border: none; border-radius: 6px; }
-        .tm-suite-cell .quant-cell-title { display: flex; align-items: center; justify-content: space-between; }
-        .tm-suite-cell .quant-cell-title button { font-size: 10px; padding: 3px 8px; }
     </style>
 </head>
 <body>
@@ -3099,10 +3395,11 @@
         <button class="tab-btn" data-tab="quant">Quant Analytics</button>
         <button class="tab-btn" data-tab="compare">Asset Compare</button>
         <button class="tab-btn" data-tab="onchain">On-Chain &amp; Derivatives</button>
-        <button class="tab-btn" data-tab="news">News &amp; Institutional</button>
+        <button class="tab-btn" data-tab="news">News &amp; Sentiment</button>
         <button class="tab-btn" data-tab="tradfi">TradFi</button>
         <button class="tab-btn" data-tab="footprint">Footprint</button>
         <button class="tab-btn" data-tab="macro">Macro Liquidity</button>
+        <button class="tab-btn" data-tab="researchlab">Research Lab</button>
         <select id="theme-select" title="Color theme">
             <option value="dark">🌑 Dark (Gold)</option>
             <option value="midnight">🌌 Midnight Blue</option>
@@ -3478,7 +3775,7 @@
         </div>
 
         <div id="news-panel" class="quant-cell">
-            <div class="quant-cell-title">Latest Crypto News — Finnhub</div>
+            <div class="quant-cell-title">Latest Crypto News — CryptoCompare</div>
             <div id="news-controls">
                 <button id="news-refresh-btn">Refresh</button>
                 <span id="news-status"></span>
@@ -3541,47 +3838,6 @@
                     <tbody></tbody>
                 </table>
             </div>
-        </div>
-
-        <div id="institutional-panel" class="quant-cell">
-            <div class="quant-cell-title">Institutional Activity — Finnhub</div>
-            <div id="institutional-controls">
-                <input type="text" id="institutional-symbol-input" value="COIN" placeholder="Symbol e.g. COIN, MSTR, AAPL">
-                <button id="institutional-refresh-btn">Load</button>
-                <span id="institutional-status"></span>
-            </div>
-
-            <div id="institutional-summary">
-                <div class="quant-row"><span>News Sentiment (Bullish/Bearish)</span><span id="inst-news-sentiment">-</span></div>
-                <div class="quant-row"><span>Insider Sentiment (MSPR, latest month)</span><span id="inst-insider-sentiment">-</span></div>
-            </div>
-
-            <div class="quant-subtitle">Insider Transactions</div>
-            <table id="inst-insider-table" class="quant-data-table">
-                <thead><tr><th>Filed</th><th>Insider</th><th>Change</th><th>Shares</th><th>Price</th></tr></thead>
-                <tbody></tbody>
-            </table>
-
-            <div class="quant-subtitle">Institutional Ownership — Top Holders (13-F)</div>
-            <table id="inst-ownership-table" class="quant-data-table">
-                <thead><tr><th>Investor</th><th>Shares</th><th>Change</th><th>% Portfolio</th></tr></thead>
-                <tbody></tbody>
-            </table>
-
-            <div class="quant-subtitle">Congressional Trading</div>
-            <table id="inst-congress-table" class="quant-data-table">
-                <thead><tr><th>Filed</th><th>Member</th><th>Type</th><th>Amount</th></tr></thead>
-                <tbody></tbody>
-            </table>
-
-            <div class="quant-subtitle">Lobbying</div>
-            <table id="inst-lobbying-table" class="quant-data-table">
-                <thead><tr><th>Year/Q</th><th>Client</th><th>Issue</th><th>Amount</th></tr></thead>
-                <tbody></tbody>
-            </table>
-
-            <div class="quant-subtitle">Press Releases</div>
-            <div id="inst-press-list"></div>
         </div>
     </div>
 
@@ -3730,39 +3986,10 @@
                 <div class="quant-cell-title">TraderMap — Liquidation Map</div>
                 <div id="tradermap-embed-controls">
                     <button id="tradermap-embed-toggle-btn">Hide</button>
-                    <span id="tradermap-embed-note">Confirmed embed path with the TraderMap owner: tradermap.io/widgets/&lt;feature-slug&gt;?theme=dark.</span>
+                    <span id="tradermap-embed-note">TraderMap publishes an official embeddable widget system (tradermap.io/widgets) — the app page below may block framing since it isn't the dedicated widget path. If it shows blank, use their Widget Customizer to get a /widgets/ embed URL instead.</span>
                 </div>
-                <iframe 
-  src="https://tradermap.io/widgets/liquidation-map?theme=transparent" 
-  width="960" 
-  height="720" 
-  frameborder="0" 
-  style="border-radius: 8px; overflow: hidden;"
-></iframe>
+                <iframe id="tradermap-iframe" src="https://tradermap.io/liquidation-map" title="TraderMap Liquidation Map" loading="lazy"></iframe>
             </div>
-
-            <div id="tradermap-trades-panel" class="quant-cell fp-grid-cell">
-                <div class="quant-cell-title">TraderMap — BTC Whale Trades</div>
-                <div id="tradermap-trades-controls">
-                    <button id="tradermap-trades-toggle-btn">Hide</button>
-                    <span id="tradermap-trades-note">Live whale trade feed on Binance/Bybit/Hyperliquid via TraderMap's official widget embed.</span>
-                </div>
-                <iframe 
-  src="https://tradermap.io/widgets/btc-trades?theme=transparent" 
-  width="800" 
-  height="720" 
-  frameborder="0" 
-  style="border-radius: 8px; overflow: hidden;"
-></iframe>
-            </div>
-            <script>
-                document.getElementById('tradermap-trades-toggle-btn')?.addEventListener('click', function () {
-                    const iframe = document.getElementById('tradermap-trades-iframe');
-                    const hidden = iframe.style.display === 'none';
-                    iframe.style.display = hidden ? '' : 'none';
-                    this.textContent = hidden ? 'Hide' : 'Show';
-                });
-            </script>
 
             <div id="footprint-candle-panel" class="quant-cell fp-grid-cell">
                 <div class="quant-cell-title">Price — Binance Kline WebSocket</div>
@@ -3774,71 +4001,6 @@
                 <div id="footprint-cvd-chart" class="quant-cell-chart"></div>
             </div>
         </div>
-
-        <div id="tradermap-suite-note">
-            TraderMap Suite — additional tools from tradermap.io, embedded via their confirmed <code>tradermap.io/widgets/&lt;slug&gt;?theme=dark</code> pattern. Slugs below are our best-effort kebab-case guess from their nav menu labels (Whales, Indicators, Hyperliquid, Prediction, Summary, More ▾) — if any panel renders blank, the slug just needs a small correction; send the exact one and it's a one-line fix. Skipped: <b>Economic Calendar</b> (duplicate of the Finnhub one on the News tab), <b>Liquidation Map</b> and <b>Whales/BTC Trades</b> (already embedded above).
-        </div>
-        <div class="tm-suite-grid">
-            <div class="quant-cell tm-suite-cell">
-                <div class="quant-cell-title">Indicators <button class="tm-toggle-btn" data-target="tm-indicators-iframe">Hide</button></div>
-                <iframe id="tm-indicators-iframe" src="https://tradermap.io/widgets/indicators?theme=dark" title="TraderMap Indicators" loading="lazy"></iframe>
-            </div>
-            <div class="quant-cell tm-suite-cell">
-                <div class="quant-cell-title">Hyperliquid <button class="tm-toggle-btn" data-target="tm-hyperliquid-iframe">Hide</button></div>
-                <iframe id="tm-hyperliquid-iframe" src="https://tradermap.io/widgets/hyperliquid?theme=dark" title="TraderMap Hyperliquid" loading="lazy"></iframe>
-            </div>
-            <div class="quant-cell tm-suite-cell">
-                <div class="quant-cell-title">Prediction <button class="tm-toggle-btn" data-target="tm-prediction-iframe">Hide</button></div>
-                <iframe id="tm-prediction-iframe" src="https://tradermap.io/widgets/prediction?theme=dark" title="TraderMap Prediction" loading="lazy"></iframe>
-            </div>
-            <div class="quant-cell tm-suite-cell">
-                <div class="quant-cell-title">Summary <button class="tm-toggle-btn" data-target="tm-summary-iframe">Hide</button></div>
-                <iframe id="tm-summary-iframe" src="https://tradermap.io/widgets/summary?theme=dark" title="TraderMap Summary" loading="lazy"></iframe>
-            </div>
-            <div class="quant-cell tm-suite-cell">
-                <div class="quant-cell-title">AI Trader <button class="tm-toggle-btn" data-target="tm-ai-trader-iframe">Hide</button></div>
-                <iframe id="tm-ai-trader-iframe" src="https://tradermap.io/widgets/ai-trader?theme=dark" title="TraderMap AI Trader" loading="lazy"></iframe>
-            </div>
-            <div class="quant-cell tm-suite-cell">
-                <div class="quant-cell-title">RSI Heatmap <button class="tm-toggle-btn" data-target="tm-rsi-heatmap-iframe">Hide</button></div>
-                <iframe id="tm-rsi-heatmap-iframe" src="https://tradermap.io/widgets/rsi-heatmap?theme=dark" title="TraderMap RSI Heatmap" loading="lazy"></iframe>
-            </div>
-            <div class="quant-cell tm-suite-cell">
-                <div class="quant-cell-title">Bubbles <button class="tm-toggle-btn" data-target="tm-bubbles-iframe">Hide</button></div>
-                <iframe id="tm-bubbles-iframe" src="https://tradermap.io/widgets/bubbles?theme=dark" title="TraderMap Bubbles" loading="lazy"></iframe>
-            </div>
-            <div class="quant-cell tm-suite-cell">
-                <div class="quant-cell-title">Leaderboard <button class="tm-toggle-btn" data-target="tm-leaderboard-iframe">Hide</button></div>
-                <iframe id="tm-leaderboard-iframe" src="https://tradermap.io/widgets/leaderboard?theme=dark" title="TraderMap Leaderboard" loading="lazy"></iframe>
-            </div>
-            <div class="quant-cell tm-suite-cell">
-                <div class="quant-cell-title">Altcoin Index <button class="tm-toggle-btn" data-target="tm-altcoin-index-iframe">Hide</button></div>
-                <iframe id="tm-altcoin-index-iframe" src="https://tradermap.io/widgets/altcoin-index?theme=dark" title="TraderMap Altcoin Index" loading="lazy"></iframe>
-            </div>
-            <div class="quant-cell tm-suite-cell">
-                <div class="quant-cell-title">ETF Flows <button class="tm-toggle-btn" data-target="tm-etf-flows-iframe">Hide</button></div>
-                <iframe id="tm-etf-flows-iframe" src="https://tradermap.io/widgets/etf-flows?theme=dark" title="TraderMap ETF Flows" loading="lazy"></iframe>
-            </div>
-            <div class="quant-cell tm-suite-cell">
-                <div class="quant-cell-title">Investment Calculator <button class="tm-toggle-btn" data-target="tm-investment-calculator-iframe">Hide</button></div>
-                <iframe id="tm-investment-calculator-iframe" src="https://tradermap.io/widgets/investment-calculator?theme=dark" title="TraderMap Investment Calculator" loading="lazy"></iframe>
-            </div>
-            <div class="quant-cell tm-suite-cell">
-                <div class="quant-cell-title">Insights <button class="tm-toggle-btn" data-target="tm-insights-iframe">Hide</button></div>
-                <iframe id="tm-insights-iframe" src="https://tradermap.io/widgets/insights?theme=dark" title="TraderMap Insights" loading="lazy"></iframe>
-            </div>
-        </div>
-        <script>
-            document.querySelectorAll('.tm-toggle-btn').forEach(function (btn) {
-                btn.addEventListener('click', function () {
-                    const iframe = document.getElementById(this.dataset.target);
-                    if (!iframe) return;
-                    const hidden = iframe.style.display === 'none';
-                    iframe.style.display = hidden ? '' : 'none';
-                    this.textContent = hidden ? 'Hide' : 'Show';
-                });
-            });
-        </script>
 
         <div id="footprint-panel" class="quant-cell">
             <div class="quant-cell-title">Footprint — <span id="footprint-symbol-label">-</span></div>
@@ -3918,6 +4080,116 @@
         </div>
     </div>
 
+    <div id="view-researchlab" class="tab-view">
+        <div id="rl-note">Quant Research Center — computed live from real historical candles (Binance → Hyperliquid → trade[xyz], same cascade as the TradFi Asset Basket). No mock/random data: with too few candles for a selection, panels say so instead of showing invented numbers.</div>
+
+        <div id="rl-controls-panel" class="quant-cell">
+            <div class="quant-cell-title">Session Analytics — Controls</div>
+            <div id="rl-controls-grid">
+                <div class="rl-control-group">
+                    <label>Asset</label>
+                    <select id="rl-asset">
+                        <option value="BTCUSDT">BTC</option>
+                        <option value="ETHUSDT">ETH</option>
+                        <option value="SOLUSDT">SOL</option>
+                        <option value="XAUUSDT">Gold</option>
+                        <option value="CLUSDT">WTI Oil</option>
+                        <option value="xyz:SPX500">SPX (trade[xyz])</option>
+                        <option value="xyz:NAS100">NASDAQ (trade[xyz])</option>
+                        <option value="xyz:DXY">DXY (trade[xyz])</option>
+                        <option value="custom">Custom ticker…</option>
+                    </select>
+                    <input type="text" id="rl-asset-custom" placeholder="e.g. AVAXUSDT or xyz:TSLA" style="display:none;">
+                </div>
+                <div class="rl-control-group">
+                    <label>Session filter</label>
+                    <select id="rl-session">
+                        <option value="all">All hours</option>
+                        <option value="asia">Asia (00:00–08:00 UTC)</option>
+                        <option value="london">London (07:00–16:00 UTC)</option>
+                        <option value="ny">New York (13:00–21:00 UTC)</option>
+                        <option value="friday_close">Friday Close (Fri 20:00–23:59 UTC)</option>
+                        <option value="monday_open">Monday Open (Mon 00:00–04:00 UTC)</option>
+                    </select>
+                </div>
+                <div class="rl-control-group">
+                    <label>Timeframe</label>
+                    <select id="rl-timeframe">
+                        <option value="15m">15m</option>
+                        <option value="30m">30m</option>
+                        <option value="1h" selected>1H</option>
+                        <option value="4h">4H</option>
+                        <option value="1d">Daily</option>
+                        <option value="1w">Weekly</option>
+                    </select>
+                </div>
+                <div class="rl-control-group">
+                    <label>History depth</label>
+                    <select id="rl-depth">
+                        <option value="1000">~1,000 candles</option>
+                        <option value="3000" selected>~3,000 candles</option>
+                        <option value="5000">~5,000 candles (max)</option>
+                    </select>
+                </div>
+                <div class="rl-control-group rl-control-actions">
+                    <label>&nbsp;</label>
+                    <button id="rl-run-btn">Run Analysis</button>
+                </div>
+            </div>
+            <div id="rl-status"></div>
+            <div id="rl-progress-track"><div id="rl-progress-fill"></div></div>
+        </div>
+
+        <div id="rl-stats-panel" class="quant-cell">
+            <div class="quant-cell-title">Historical Statistics — <span id="rl-stats-label">-</span></div>
+            <div id="rl-stats-grid"></div>
+            <div id="rl-stats-footnote"></div>
+        </div>
+
+        <div class="rl-grid-2col">
+            <div id="rl-session-panel" class="quant-cell">
+                <div class="quant-cell-title">Session Behavior</div>
+                <div id="rl-session-table-wrap">
+                    <table id="rl-session-table">
+                        <thead><tr><th>Session</th><th>N</th><th>Bullish %</th><th>Avg Return</th><th>Avg Range</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="rl-gap-panel" class="quant-cell">
+                <div class="quant-cell-title">Gap Analysis</div>
+                <div id="rl-gap-grid"></div>
+            </div>
+        </div>
+
+        <div class="rl-grid-2col">
+            <div id="rl-dist-chart-panel" class="quant-cell">
+                <div class="quant-cell-title">Return Distribution</div>
+                <div id="rl-dist-chart" class="quant-cell-chart"></div>
+            </div>
+
+            <div id="rl-seasonality-panel" class="quant-cell">
+                <div class="quant-cell-title">Seasonality — Avg Return by Weekday</div>
+                <div id="rl-seasonality-chart" class="quant-cell-chart"></div>
+            </div>
+        </div>
+
+        <div id="rl-hourly-panel" class="quant-cell">
+            <div class="quant-cell-title">Hourly Return Heatmap (UTC)</div>
+            <div id="rl-hourly-chart" class="quant-cell-chart"></div>
+        </div>
+
+        <div id="rl-ai-key-panel" class="quant-cell">
+            <div class="quant-cell-title">AI Research Note (prep — generation coming in a later phase)</div>
+            <div id="rl-ai-key-row">
+                <input type="text" id="rl-openrouter-key-input" placeholder="Your free OpenRouter API key">
+                <button id="rl-openrouter-key-save-btn">Save Key</button>
+                <span id="rl-ai-key-note">Free key at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener">openrouter.ai</a> — stored only in this browser. The "Generate Research Note PDF" button and AI writeup are a later phase; this just saves your key so it's ready.</span>
+            </div>
+        </div>
+    </div>
+
 	<div id="versionInfo" style="position: fixed; bottom: 0; right: 0; margin: 1px;">
 		<a><a href="https://chromewebstore.google.com/detail/allow-cors-access-control/lhobafahddgcelffkeicbaginigeejlf" style="font-weight: bold; margin-right: 5px;">Install CORS browser extension to see data from all exchanges ❗❗</a></a>	
 		<a href="https://github.com/NotDev1/combined-orderbook-exchanges" style="font-weight: bold; margin-right: 5px;">#1.20000000</a>
@@ -3934,6 +4206,9 @@
 	<script src="tradfi.js"></script>
 	<script src="footprint.js"></script>
 	<script src="macro.js"></script>
+	<script src="session-engine.js"></script>
+	<script src="statistics-engine.js"></script>
+	<script src="researchlab.js"></script>
 	<script src="theme.js"></script>
 	<script src="loading.js"></script>
 </body>
