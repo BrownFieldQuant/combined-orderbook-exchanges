@@ -4081,7 +4081,103 @@
     </div>
 
     <div id="view-researchlab" class="tab-view">
-        <div id="rl-note">Quant Research Center — computed live from real historical candles (Binance → Hyperliquid → trade[xyz], same cascade as the TradFi Asset Basket). No mock/random data: with too few candles for a selection, panels say so instead of showing invented numbers.</div>
+        <div id="rl-note">Quant Research Center — computed live from real historical candles (Binance → Hyperliquid → trade[xyz], same cascade as the TradFi Asset Basket). No mock/random data: with too few candles for a selection, panels say so instead of showing invented numbers. <button id="rl-learn-toggle-btn">Learn about this tab</button></div>
+
+        <div id="rl-learn-panel" class="quant-cell" style="display:none;">
+            <div class="quant-cell-title">Learn about this tab — what each number means, and how they connect</div>
+
+            <details class="rl-learn-item" open>
+                <summary>What is Research Lab, in plain terms?</summary>
+                <div class="rl-learn-body">
+                    <p>You pick an asset, a timeframe, and (optionally) a session window. The tab pulls real historical candles for that selection and computes standard quant statistics on them — the same kind of numbers a prop-trading or research desk looks at before sizing a position, not predictions or advice.</p>
+                    <p>Everything below is grouped in the order it naturally builds up: first "how much did price move and which way", then "was that move good risk-adjusted", then "how sure can we be this isn't just noise".</p>
+                </div>
+            </details>
+
+            <details class="rl-learn-item">
+                <summary>Direction &amp; sample basics — Sample Size, Bullish %, Bearish %</summary>
+                <div class="rl-learn-body">
+                    <p><b>Sample Size</b> is how many candles went into every calculation on this page. Everything else — every ratio, every percentage — is only as trustworthy as this number. Under ~30 candles, treat all other numbers as noise; the tab will say "not enough data" rather than show them.</p>
+                    <p><b>Bullish %</b> / <b>Bearish %</b> are simply the share of candles that closed up vs. down. On their own they say nothing about *how much* was gained or lost — a market that's 70% bullish but loses more on the 30% red candles than it makes on the green ones can still be a net loser. That's exactly why the return-size metrics below exist alongside these.</p>
+                </div>
+            </details>
+
+            <details class="rl-learn-item">
+                <summary>How big were the moves — Average/Median Return, Avg High-Low, ATR, Volatility, Standard Deviation</summary>
+                <div class="rl-learn-body">
+                    <p><b>Average Return</b> is the mean gain/loss per candle. <b>Median Return</b> is the middle value — use it alongside the average to spot skew: if the median is much smaller than the average, a few huge outlier candles are pulling the average up (or down).</p>
+                    <p><b>Average High-Low</b> and <b>ATR</b> (Average True Range) both measure typical candle range, i.e. how far price swings within a period regardless of direction. ATR is the more standard version (it also accounts for gaps between candles).</p>
+                    <p><b>Volatility</b> and <b>Standard Deviation</b> measure how spread-out the returns are around the average. Volatility here is that same spread expressed as a %; Standard Deviation is the raw price-unit version. <u>This single number is the "risk" half of every ratio in the next section</u> — Sharpe, Sortino, and Calmar all divide some version of return by some version of this spread.</p>
+                </div>
+            </details>
+
+            <details class="rl-learn-item">
+                <summary>Risk-adjusted ratios — Sharpe, Sortino, Calmar (how they relate)</summary>
+                <div class="rl-learn-body">
+                    <p>All three answer the same question — "how much return did you get per unit of risk taken" — but define <i>risk</i> differently, so they can disagree:</p>
+                    <p><b>Sharpe Ratio</b> = return ÷ total volatility (punishes upside and downside swings equally).</p>
+                    <p><b>Sortino Ratio</b> = return ÷ downside volatility only. It's always ≥ Sharpe for the same data, because it ignores the "risk" of moving up. A big gap between Sharpe and Sortino tells you most of the volatility was upside surprises, not downside pain.</p>
+                    <p><b>Calmar Ratio</b> = annualized return ÷ Maximum Drawdown (see below). It answers "how much did I earn relative to the single worst losing streak", which matters more to someone who can't stomach a big drawdown than average volatility does.</p>
+                    <p>Read them together: high Sharpe + low Sortino gap + high Calmar = smooth, consistent performer. High Sharpe but low Calmar = decent on average, but with one nasty drawdown dragging down the risk-adjusted picture.</p>
+                </div>
+            </details>
+
+            <details class="rl-learn-item">
+                <summary>Trade-quality metrics — Profit Factor, Kelly %, Expected Value, Avg Win/Loss (how they're built from each other)</summary>
+                <div class="rl-learn-body">
+                    <p>These four are computed from the same two underlying numbers: the <b>win rate</b> (≈ Bullish %) and the <b>size of average wins vs. average losses</b>.</p>
+                    <p><b>Average Win</b> / <b>Average Loss</b> are the building blocks — mean return of the up periods and mean return of the down periods, separately.</p>
+                    <p><b>Profit Factor</b> = total gains ÷ total losses. Above 1 means winners outweighed losers in total; below 1 means the opposite even if win rate looked fine.</p>
+                    <p><b>Expected Value</b> = (win rate × avg win) + (loss rate × avg loss). This is literally "what you'd expect to make per period, on average" — the single most direct answer to "was this historically profitable".</p>
+                    <p><b>Kelly %</b> is derived from win rate and the win/loss size ratio — it's the textbook-optimal fraction of capital to risk per period <i>if</i> this historical pattern holds going forward. In practice people use a fraction of Kelly (e.g. 1/4) because the historical win rate is an estimate, not a certainty — which is exactly what the confidence metrics further down quantify.</p>
+                </div>
+            </details>
+
+            <details class="rl-learn-item">
+                <summary>Downside/risk metrics — Maximum Drawdown, MAE, MFE</summary>
+                <div class="rl-learn-body">
+                    <p><b>Maximum Drawdown</b> is the worst peak-to-trough decline across the whole sample — the deepest hole you'd have been in if you'd held through the sample period. It's the denominator of Calmar Ratio above.</p>
+                    <p><b>MAE</b> (Maximum Adverse Excursion) is, on average, how far price moved <i>against</i> a candle's own eventual direction before it closed — i.e. how much "heat" you'd have taken holding through it. <b>MFE</b> (Maximum Favorable Excursion) is the opposite: how far it moved <i>in your favor</i> before closing. Comparing MAE to MFE gives a feel for how much a candle "tests" you before resolving.</p>
+                </div>
+            </details>
+
+            <details class="rl-learn-item">
+                <summary>Is this statistically real? — Confidence Score, Confidence Interval, P-value, Z-score, Data Quality</summary>
+                <div class="rl-learn-body">
+                    <p>These five are all one chain of logic, not five separate ideas:</p>
+                    <p><b>Z-score</b> asks: "how many standard errors is the average return away from zero?" — the bigger the number (positive or negative), the less likely the average return we measured is just random noise around a true average of zero.</p>
+                    <p><b>P-value</b> converts that Z-score into a probability: specifically, the odds you'd see a result this extreme (or more) purely by chance if the true average return were actually zero. Lower = more confident there's a real effect, not luck.</p>
+                    <p><b>Confidence Score</b> is just <code>(1 − P-value) × 100</code> — the same information as P-value, flipped into an intuitive 0-100 scale where higher is better.</p>
+                    <p><b>Confidence Interval</b> uses the same standard error as the Z-score to give a range: "95% of the time, the true average return would fall somewhere in this band." A wide band means the point estimate (Average Return) is uncertain even if the sign is consistent.</p>
+                    <p><b>Data Quality</b> is the blunt, sample-size-only version of all of the above — a quick sanity check before you even look at the p-value.</p>
+                    <p><i>Rule of thumb: a great Sharpe Ratio or Kelly % computed on a Low/Insufficient Data Quality sample should be trusted much less than a mediocre one computed on High Data Quality — always check this row first.</i></p>
+                </div>
+            </details>
+
+            <details class="rl-learn-item">
+                <summary>Session Behavior, Gap Analysis, Return Distribution, Seasonality — what each is for</summary>
+                <div class="rl-learn-body">
+                    <p><b>Session Behavior</b> re-runs the bullish%/avg-return/avg-range numbers separately for Asia, London, New York, Friday Close, and Monday Open (sessions defined in UTC, so they don't shift with daylight saving) — useful for spotting whether a market's character actually changes by time of day.</p>
+                    <p><b>Gap Analysis</b> looks only at the jump between one candle's close and the next candle's open, and how often price later trades back through that pre-gap level within 24h/48h/72h ("filling" the gap) — a classic mean-reversion tell.</p>
+                    <p><b>Return Distribution</b> is a histogram of every individual return in the sample — it shows the <i>shape</i> behind the Average/Median/Std Dev numbers above (a fat middle with thin tails looks very different from one with frequent large outliers, even if the average is identical).</p>
+                    <p><b>Seasonality</b> and the <b>Hourly Return Heatmap</b> break the same average-return calculation down by weekday and by UTC hour respectively, to reveal patterns that a single blended average would hide.</p>
+                </div>
+            </details>
+
+            <details class="rl-learn-item">
+                <summary>How to read the whole page top to bottom</summary>
+                <div class="rl-learn-body">
+                    <ol>
+                        <li>Check <b>Data Quality</b> and <b>Sample Size</b> first — decide how much to trust everything else.</li>
+                        <li>Look at <b>Average/Median Return</b> and <b>Bullish/Bearish %</b> for the basic direction and size of the edge, if any.</li>
+                        <li>Check <b>P-value / Z-score / Confidence Interval</b> — is that edge statistically distinguishable from zero, or could it just be noise?</li>
+                        <li>Use <b>Sharpe / Sortino / Calmar</b> to judge whether the edge was smooth or came with rough patches.</li>
+                        <li>Use <b>Profit Factor / Expected Value / Kelly %</b> to translate the edge into "would this have actually been worth trading, and how much of it."</li>
+                        <li>Use <b>Session Behavior / Gap Analysis / Seasonality</b> to see if the edge concentrates in specific times or conditions rather than being uniform.</li>
+                    </ol>
+                </div>
+            </details>
+        </div>
 
         <div id="rl-controls-panel" class="quant-cell">
             <div class="quant-cell-title">Session Analytics — Controls</div>
