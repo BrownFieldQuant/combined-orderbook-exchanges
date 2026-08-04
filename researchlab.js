@@ -19,6 +19,8 @@ const RL_HISTORY_CACHE_PREFIX = 'rl_history_';
 let rlDistChart = null;
 let rlSeasonalityChart = null;
 let rlHourlyChart = null;
+let rlVolDistChart = null;
+let rlMonthlyChart = null;
 
 /* ------------------------------ deep history ------------------------------ */
 
@@ -343,6 +345,55 @@ function renderHourlyHeatmap(candles) {
     }
 }
 
+function renderMonthlyReturnChart(candles) {
+    const container = document.getElementById('rl-monthly-chart');
+    if (!container || typeof Highcharts === 'undefined') return;
+    const monthly = computeMonthlyReturn(candles);
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const options = {
+        chart: { type: 'column', animation: false, backgroundColor: 'transparent' },
+        title: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: { categories: monthNames, labels: { style: { fontSize: '9px', color: '#9aa4b5' } } },
+        yAxis: { title: { text: 'Avg Return %' }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130', plotLines: [{ value: 0, color: '#6b7280', width: 1 }] },
+        tooltip: { valueDecimals: 4 },
+        plotOptions: { column: { negativeColor: '#ef5350', color: '#3ecf8e' } },
+        series: [{ name: 'Avg Return %', data: monthly.map(m => m.avgReturnPct === null ? null : Number(m.avgReturnPct.toFixed(4))) }]
+    };
+    if (!rlMonthlyChart) {
+        rlMonthlyChart = Highcharts.chart('rl-monthly-chart', options);
+        if (typeof attachChartWatermark === 'function') attachChartWatermark(rlMonthlyChart, 'own history cache, sourced from Binance / Hyperliquid / trade[xyz]');
+    } else {
+        rlMonthlyChart.update(options, true, true);
+    }
+}
+
+function renderVolatilityDistributionChart(candles) {
+    const container = document.getElementById('rl-vol-dist-chart');
+    if (!container || typeof Highcharts === 'undefined') return;
+    const hist = computeVolatilityDistribution(candles, 20, 20);
+    if (!hist) { container.innerHTML = ''; return; }
+
+    const options = {
+        chart: { type: 'column', animation: false, backgroundColor: 'transparent' },
+        title: { text: null },
+        credits: { enabled: false },
+        legend: { enabled: false },
+        xAxis: { categories: hist.map(b => b.binStart.toFixed(2) + '%'), labels: { style: { fontSize: '8px', color: '#9aa4b5' }, rotation: -45 } },
+        yAxis: { title: { text: 'Count' }, labels: { style: { fontSize: '9px', color: '#d7dde5' } }, gridLineColor: '#1c2130' },
+        tooltip: { headerFormat: '', pointFormat: 'Rolling volatility bucket: {point.category}<br>Count: {point.y}' },
+        series: [{ name: 'Volatility distribution', data: hist.map(b => b.count), color: '#5aa9e6' }]
+    };
+    if (!rlVolDistChart) {
+        rlVolDistChart = Highcharts.chart('rl-vol-dist-chart', options);
+        if (typeof attachChartWatermark === 'function') attachChartWatermark(rlVolDistChart, 'own history cache, sourced from Binance / Hyperliquid / trade[xyz]');
+    } else {
+        rlVolDistChart.update(options, true, true);
+    }
+}
+
 /* --------------------------------- run --------------------------------- */
 
 async function runResearchLabAnalysis() {
@@ -400,6 +451,8 @@ async function runResearchLabAnalysis() {
     renderGapPanel(candles, timeframe);
     renderDistributionChart(filtered);
     renderSeasonalityChart(candles);
+    renderVolatilityDistributionChart(filtered);
+    renderMonthlyReturnChart(candles);
     renderHourlyHeatmap(candles);
 
     rlSetStatus(`done · ${filtered.length}/${candles.length} candles used · source: ${source}`);
@@ -413,6 +466,8 @@ const RL_OPENROUTER_KEY_STORAGE = 'rl_openrouter_api_key';
 window.initResearchlabTab = function () {
     if (rlDistChart) rlDistChart.reflow();
     if (rlSeasonalityChart) rlSeasonalityChart.reflow();
+    if (rlVolDistChart) rlVolDistChart.reflow();
+    if (rlMonthlyChart) rlMonthlyChart.reflow();
     if (rlHourlyChart) rlHourlyChart.reflow();
 };
 
