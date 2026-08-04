@@ -1670,7 +1670,7 @@
             border: 1px solid #232838;
             margin-top: 6px;
         }
-        #rl-dist-chart, #rl-seasonality-chart {
+        #rl-dist-chart, #rl-seasonality-chart, #rl-vol-dist-chart, #rl-monthly-chart {
             height: 260px;
         }
         #rl-hourly-chart {
@@ -1773,37 +1773,28 @@
             margin-bottom: 6px;
         }
 
-        #translate-lang-select {
-            font-size: 10px;
+        #google_translate_element {
+            display: inline-block;
+            margin-left: 8px;
         }
-        #translate-key-toggle-btn {
-            padding: 3px 8px;
+        /* Google's widget renders a small styled <select> once loaded; this
+           keeps it visually consistent with our other controls. */
+        #google_translate_element .goog-te-gadget {
+            font-family: 'Consolas', 'SFMono-Regular', 'Courier New', monospace !important;
+            font-size: 0 !important;
         }
-        #translate-key-panel {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            background: #11151d;
-            border: 1px solid #232838;
-            padding: 6px 10px;
-            margin-bottom: 8px;
+        #google_translate_element select.goog-te-combo {
+            background: #1a1f2b;
+            color: #d7dde5;
+            border: 1px solid #2b3242;
+            font-size: 10px !important;
+            padding: 3px 6px;
         }
-        #translate-api-key-input {
-            width: 220px;
-        }
-        #translate-key-note {
-            font-size: 9px;
-            color: #6b7280;
-        }
-        #translate-key-note a {
-            color: var(--accent);
-        }
-        #translate-status {
-            font-size: 9px;
-            font-weight: bold;
-            color: #6b7280;
-        }
+        /* Google injects a top banner iframe + shifts <body> down when
+           translation is active — undo the shift so our fixed layout
+           (loading screen, sticky tab bar) doesn't jump. */
+        .goog-te-banner-frame { display: none !important; }
+        body { top: 0 !important; }
 
         html[data-theme="light"] {
                     html, body {
@@ -3000,7 +2991,7 @@
             border: 1px solid #dcdfe4;
             margin-top: 6px;
         }
-        #rl-dist-chart, #rl-seasonality-chart {
+        #rl-dist-chart, #rl-seasonality-chart, #rl-vol-dist-chart, #rl-monthly-chart {
             height: 260px;
         }
         #rl-hourly-chart {
@@ -3101,38 +3092,6 @@
         }
         .rl-learn-body li {
             margin-bottom: 6px;
-        }
-
-        #translate-lang-select {
-            font-size: 10px;
-        }
-        #translate-key-toggle-btn {
-            padding: 3px 8px;
-        }
-        #translate-key-panel {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            background: #ffffff;
-            border: 1px solid #dcdfe4;
-            padding: 6px 10px;
-            margin-bottom: 8px;
-        }
-        #translate-api-key-input {
-            width: 220px;
-        }
-        #translate-key-note {
-            font-size: 9px;
-            color: #5b6472;
-        }
-        #translate-key-note a {
-            color: var(--accent);
-        }
-        #translate-status {
-            font-size: 9px;
-            font-weight: bold;
-            color: #5b6472;
         }
 
         #theme-select {
@@ -3591,26 +3550,7 @@
             <option value="crimson">🔴 Crimson Red</option>
             <option value="light">☀️ Light</option>
         </select>
-        <select id="translate-lang-select" title="Translate static labels (not live data)">
-            <option value="">🌐 Translate…</option>
-            <option value="vi">Tiếng Việt</option>
-            <option value="en">English (original)</option>
-            <option value="zh-CN">中文</option>
-            <option value="ja">日本語</option>
-            <option value="ko">한국어</option>
-            <option value="es">Español</option>
-            <option value="fr">Français</option>
-            <option value="de">Deutsch</option>
-            <option value="ru">Русский</option>
-            <option value="pt">Português</option>
-        </select>
-        <button id="translate-key-toggle-btn" title="Google Cloud Translation API key">🔑</button>
-    </div>
-    <div id="translate-key-panel" style="display:none;">
-        <input type="text" id="translate-api-key-input" placeholder="Google Cloud Translation API key">
-        <button id="translate-key-save-btn">Save Key</button>
-        <span id="translate-key-note">Free tier + pay-as-you-go at <a href="https://console.cloud.google.com/apis/library/translate.googleapis.com" target="_blank" rel="noopener">console.cloud.google.com</a> — stored only in this browser. Only static labels/titles are translated (not live prices/tables), to avoid re-translating data that changes every few seconds.</span>
-        <span id="translate-status"></span>
+        <div id="google_translate_element" title="Translate this page (free, no key needed)"></div>
     </div>
     <div id="controls">
         <div id="dropdown" class="dropdown">
@@ -4472,6 +4412,18 @@
             <div id="rl-seasonality-panel" class="quant-cell">
                 <div class="quant-cell-title">Seasonality — Avg Return by Weekday</div>
                 <div id="rl-seasonality-chart" class="quant-cell-chart"></div>
+            </div>
+        </div>
+
+        <div class="rl-grid-2col">
+            <div id="rl-vol-dist-panel" class="quant-cell">
+                <div class="quant-cell-title">Volatility Distribution (rolling 20-period)</div>
+                <div id="rl-vol-dist-chart" class="quant-cell-chart"></div>
+            </div>
+
+            <div id="rl-monthly-panel" class="quant-cell">
+                <div class="quant-cell-title">Monthly Return (avg by calendar month)</div>
+                <div id="rl-monthly-chart" class="quant-cell-chart"></div>
             </div>
         </div>
 
