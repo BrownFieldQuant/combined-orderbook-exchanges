@@ -272,3 +272,52 @@ function computeHourlyHeatmap(candles) {
     });
     return byHour.map((arr, hour) => ({ hour, avgReturnPct: arr.length ? rsMean(arr) * 100 : null, sampleSize: arr.length }));
 }
+
+/**
+ * Average return grouped by calendar month (0=Jan..11=Dec), across all
+ * years present in the sample — the classic "seasonality by month" view
+ * (e.g. "does this asset tend to do better in Q4").
+ */
+function computeMonthlyReturn(candles) {
+    const returns = computeReturns(candles);
+    const byMonth = Array.from({ length: 12 }, () => []);
+    candles.forEach((c, i) => {
+        if (returns[i] === null) return;
+        const month = new Date(c.time).getUTCMonth();
+        byMonth[month].push(returns[i]);
+    });
+    return byMonth.map((arr, month) => ({ month, avgReturnPct: arr.length ? rsMean(arr) * 100 : null, sampleSize: arr.length }));
+}
+
+/**
+ * Distribution of REALIZED VOLATILITY itself (not returns) — a rolling
+ * standard deviation of returns over a short window, then histogrammed.
+ * This answers a different question than Return Distribution: not "how
+ * big were individual moves" but "how calm vs. turbulent were different
+ * stretches of this history".
+ */
+function computeVolatilityDistribution(candles, windowSize, binCount) {
+    const returns = computeReturns(candles).filter(r => r !== null);
+    const window = windowSize || 20;
+    if (returns.length < window + 5) return null;
+
+    const rollingVols = [];
+    for (let i = window; i <= returns.length; i++) {
+        const slice = returns.slice(i - window, i);
+        rollingVols.push(rsStdDev(slice) * 100);
+    }
+    if (rollingVols.length < 5) return null;
+
+    const bins = binCount || 20;
+    const min = Math.min(...rollingVols), max = Math.max(...rollingVols);
+    const range = max - min || 1;
+    const width = range / bins;
+    const counts = new Array(bins).fill(0);
+    rollingVols.forEach(v => {
+        let idx = Math.floor((v - min) / width);
+        if (idx >= bins) idx = bins - 1;
+        if (idx < 0) idx = 0;
+        counts[idx]++;
+    });
+    return counts.map((count, i) => ({ binStart: min + i * width, binEnd: min + (i + 1) * width, count }));
+}
