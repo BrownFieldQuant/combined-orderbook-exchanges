@@ -6,11 +6,10 @@
             try {
                 var saved = localStorage.getItem('orderbook_theme');
                 if (saved) document.documentElement.setAttribute('data-theme', saved);
-            } catch (e) { /* localStorage unavailable — keep default light theme */ }
+            } catch (e) { /* localStorage unavailable — keep default dark theme */ }
         })();
     </script>
-    <title>Lowcost Research Terminal</title>
-	<link rel="icon" type="image/png" href="/logo.png">
+    <title>Combined Order Book Data Chart</title>
     <script src="https://code.highcharts.com/highcharts.js"></script>
     <script src="https://code.highcharts.com/modules/exporting.js"></script>
     <script src="https://code.highcharts.com/modules/annotations.js"></script>
@@ -1797,6 +1796,20 @@
         .goog-te-banner-frame { display: none !important; }
         body { top: 0 !important; }
 
+        #rl-market-structure-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: #232838;
+            border: 1px solid #232838;
+            margin-top: 6px;
+        }
+        #rl-market-structure-note {
+            font-size: 9px;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+
         html[data-theme="light"] {
                     html, body {
                 background: #f4f5f7;
@@ -3093,6 +3106,20 @@
         }
         .rl-learn-body li {
             margin-bottom: 6px;
+        }
+
+        #rl-market-structure-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: #dcdfe4;
+            border: 1px solid #dcdfe4;
+            margin-top: 6px;
+        }
+        #rl-market-structure-note {
+            font-size: 9px;
+            color: #5b6472;
+            margin-top: 8px;
         }
 
         #theme-select {
@@ -4431,6 +4458,12 @@
         <div id="rl-hourly-panel" class="quant-cell">
             <div class="quant-cell-title">Hourly Return Heatmap (UTC)</div>
             <div id="rl-hourly-chart" class="quant-cell-chart"></div>
+        </div>
+
+        <div id="rl-market-structure-panel" class="quant-cell">
+            <div class="quant-cell-title">Market Structure — live, reused from Binance Derivatives</div>
+            <div id="rl-market-structure-grid"></div>
+            <div id="rl-market-structure-note">Funding Rate &amp; Open Interest are live snapshots (not historical, since Binance doesn't expose deep OI/funding history for free). Volume, VWAP, and Avg Trade Size are computed from the same candle history used above. If the selected asset isn't a Binance derivative, this section is skipped rather than showing invented numbers.</div>
         </div>
 
         <div id="rl-ai-key-panel" class="quant-cell">
