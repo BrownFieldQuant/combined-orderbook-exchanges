@@ -49,7 +49,7 @@ async function fetchDeepHistoryBinance(symbol, interval, targetCount) {
         if (!res.ok) break;
         const rows = await res.json();
         if (!Array.isArray(rows) || rows.length === 0) break;
-        const batch = rows.map(r => ({ time: r[6], o: parseFloat(r[1]), h: parseFloat(r[2]), l: parseFloat(r[3]), c: parseFloat(r[4]) }))
+        const batch = rows.map(r => ({ time: r[6], o: parseFloat(r[1]), h: parseFloat(r[2]), l: parseFloat(r[3]), c: parseFloat(r[4]), v: parseFloat(r[5]) }))
             .filter(c => isFinite(c.o) && isFinite(c.h) && isFinite(c.l) && isFinite(c.c));
         all = batch.concat(all);
         rlSetProgress(Math.min(95, all.length / targetCount * 100));
@@ -72,7 +72,7 @@ async function fetchDeepHistoryHyperliquid(coin, interval, targetCount, interval
         if (!res.ok) return null;
         const rows = await res.json();
         if (!Array.isArray(rows) || rows.length === 0) return null;
-        return rows.map(r => ({ time: r.t, o: parseFloat(r.o), h: parseFloat(r.h), l: parseFloat(r.l), c: parseFloat(r.c) }))
+        return rows.map(r => ({ time: r.t, o: parseFloat(r.o), h: parseFloat(r.h), l: parseFloat(r.l), c: parseFloat(r.c), v: parseFloat(r.v || 0) }))
             .filter(c => isFinite(c.o) && isFinite(c.h) && isFinite(c.l) && isFinite(c.c));
     } catch (e) {
         return null;
@@ -394,6 +394,76 @@ function renderVolatilityDistributionChart(candles) {
     }
 }
 
+/* ------------------------------ market structure ------------------------------ */
+
+function computeVolumeStats(candles) {
+    const withVolume = candles.filter(c => isFinite(c.v) && c.v > 0);
+    if (withVolume.length === 0) return null;
+    const totalVolume = withVolume.reduce((s, c) => s + c.v, 0);
+    const avgVolume = totalVolume / withVolume.length;
+    // VWAP over the sample: sum(typicalPrice * volume) / sum(volume)
+    const vwapNumerator = withVolume.reduce((s, c) => s + ((c.h + c.l + c.c) / 3) * c.v, 0);
+    const vwap = vwapNumerator / totalVolume;
+    return { totalVolume, avgVolume, vwap, candlesWithVolume: withVolume.length };
+}
+
+async function fetchLiveDerivatives(symbol) {
+    try {
+        const [premiumRes, oiRes] = await Promise.all([
+            fetch(`https://fapi.binance.com/fapi/v1/premiumIndex?symbol=${symbol}`),
+            fetch(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${symbol}`)
+        ]);
+        if (!premiumRes.ok) return null;
+        const premium = await premiumRes.json();
+        const oi = oiRes.ok ? await oiRes.json() : null;
+        return {
+            fundingRatePct: parseFloat(premium.lastFundingRate) * 100,
+            markPrice: parseFloat(premium.markPrice),
+            openInterest: oi ? parseFloat(oi.openInterest) : null
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
+async function renderMarketStructure(asset, candles) {
+    const grid = document.getElementById('rl-market-structure-grid');
+    if (!grid) return;
+
+    const cells = [];
+    const volStats = computeVolumeStats(candles);
+    if (volStats) {
+        cells.push(['Total Volume (sample)', volStats.totalVolume.toLocaleString(undefined, { maximumFractionDigits: 2 })]);
+        cells.push(['Avg Volume / Candle', volStats.avgVolume.toLocaleString(undefined, { maximumFractionDigits: 2 })]);
+        cells.push(['VWAP (sample)', volStats.vwap.toLocaleString(undefined, { maximumFractionDigits: 4 })]);
+    }
+
+    // Live derivatives data only applies to Binance-format symbols (not
+    // xyz: HIP-3 tickers or bare Hyperliquid coin names).
+    const looksLikeBinanceSymbol = /^[A-Z0-9]+USDT$/.test(asset);
+    if (looksLikeBinanceSymbol) {
+        const deriv = await fetchLiveDerivatives(asset);
+        if (deriv) {
+            cells.push(['Funding Rate (live)', (deriv.fundingRatePct >= 0 ? '+' : '') + deriv.fundingRatePct.toFixed(4) + '%']);
+            if (deriv.openInterest !== null) {
+                cells.push(['Open Interest (live)', deriv.openInterest.toLocaleString(undefined, { maximumFractionDigits: 2 })]);
+            }
+        }
+    }
+
+    if (cells.length === 0) {
+        grid.innerHTML = '<div class="rl-stat-cell">No volume/derivatives data available for this asset/source.</div>';
+        return;
+    }
+
+    grid.innerHTML = cells.map(([label, value]) => `
+        <div class="rl-stat-cell">
+            <div class="rl-stat-label">${label}</div>
+            <div class="rl-stat-value">${value}</div>
+        </div>
+    `).join('');
+}
+
 /* --------------------------------- run --------------------------------- */
 
 async function runResearchLabAnalysis() {
@@ -454,6 +524,7 @@ async function runResearchLabAnalysis() {
     renderVolatilityDistributionChart(filtered);
     renderMonthlyReturnChart(candles);
     renderHourlyHeatmap(candles);
+    renderMarketStructure(asset, candles);
 
     rlSetStatus(`done · ${filtered.length}/${candles.length} candles used · source: ${source}`);
     setTimeout(() => rlSetProgress(0), 1200);
